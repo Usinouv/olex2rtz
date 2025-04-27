@@ -185,7 +185,3 @@ def convert():
         download_name=f"{selected_route['route_name']}.rtz",
         mimetype='application/xml'
     )
-
-
-if __name__ == '__main__':
-    app.run(debug=True, host="0.0.0.0", port=5000)

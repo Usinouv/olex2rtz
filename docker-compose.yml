@@ -1,10 +1,7 @@
 services:
   olex2rtz:
     build: .
-    ports:
-      - "5000:5000"
-    volumes:
-      - .:/app
+    container_name: olex2rtz
     environment:
       - FLASK_ENV=production
     labels:
