@@ -193,7 +193,7 @@ def upload():
                     currentMarkers.push(marker);
                 });
 
-                currentRoute = L.polyline(latlngs, {color: 'blue'}).addTo(map);
+                currentRoute = L.polyline(latlngs, {color: '#004080'}).addTo(map);
                 map.fitBounds(currentRoute.getBounds());
             }
 
