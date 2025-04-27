@@ -1,0 +1,91 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    margin: 0;
+    padding: 20px;
+    color: #333333;
+    text-align: center; 
+}
+
+.container {
+    background: #ffffff;
+    padding: 20px 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+h1, h2 {
+    text-align: center;
+    color: #333333;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+/* Limiter la largeur des champs de formulaire et des boutons */
+form input[type="file"], form select, form button {
+    max-width: 300px;
+    width: 100%; /* Pour que les éléments soient responsives */
+    margin: 0 auto; /* Centrer les éléments */
+    display: block;
+}
+
+button {
+    background-color: #004080; /* Bleu marine */
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #00264d; /* Bleu marine foncé */
+}
+
+table {
+    width: 100%; /* La table occupe toute la largeur disponible */
+    max-width: 800px; /* Limite la largeur maximale de la table */
+    border-collapse: collapse;
+    margin: 20px auto; /* Centre la table horizontalement */
+    font-size: 0.9em;
+    background-color: #ffffff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    overflow-x: auto; /* Ajoute un défilement horizontal si nécessaire */
+}
+
+table th, table td {
+    border: 1px solid #dddddd;
+    text-align: center;
+    padding: 10px;
+    word-wrap: break-word; /* Permet de couper les mots longs */
+}
+
+table th {
+    background-color: #004080; /* Bleu marine */
+    color: white;
+    text-transform: uppercase;
+}
+
+table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+table tr:hover {
+    background-color: #e6f0ff; /* Bleu clair pour le survol */
+}
+
+footer {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 0.9em;
+    color: #666666;
+}

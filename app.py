@@ -92,36 +92,66 @@ def upload():
     stored_routes = routes
 
     # Générer une réponse HTML pour afficher les routes et leurs waypoints
-    html = "<h1>Routes et Waypoints</h1>"
-    html += "<form method='post' action='/convert'>"
-    html += "<label for='route'>Choisissez une route à convertir :</label>"
-    html += "<select name='route' id='route'>"
+html = """
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Routes et Waypoints</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<div class="container">
+    <h1>Routes et Waypoints</h1>
+    <form method="post" action="/convert">
+        <label for="route">Choisissez une route à convertir :</label>
+        <select name="route" id="route">
+    """
     for route in routes:
         html += f"<option value='{route['route_name']}'>{route['route_name']}</option>"
-    html += "</select>"
-    html += "<button type='submit'>Convertir</button>"
-    html += "</form>"
+    html += """
+        </select>
+        <button type="submit">Convertir</button>
+    </form>
+    """
+
     for route in routes:
         html += f"<h2>{route['route_name']}</h2>"
-        html += (
-            "<table border='1'>"
-            "<thead><tr>"
-            "<th>Nom</th><th>Latitude</th><th>Longitude</th>"
-            "</tr></thead><tbody>"
-        )
+        html += """
+        <table class="waypoints-table">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                </tr>
+            </thead>
+            <tbody>
+        """
         for waypoint in route['waypoints']:
             lat_deg = int(waypoint['lat'])
             lat_min = abs((waypoint['lat'] - lat_deg) * 60)
             lon_deg = int(waypoint['lon'])
             lon_min = abs((waypoint['lon'] - lon_deg) * 60)
-            html += (
-                f"<tr>"
-                f"<td>{waypoint['name']}</td>"
-                f"<td>{lat_deg:02d}° {lat_min:06.3f}'</td>"
-                f"<td>{lon_deg:03d}° {lon_min:06.3f}'</td>"
-                f"</tr>"
-            )
-        html += "</tbody></table>"
+            html += f"""
+                <tr>
+                    <td>{waypoint['name']}</td>
+                    <td>{lat_deg}° {lat_min:.3f}'</td>
+                    <td>{lon_deg}° {lon_min:.3f}'</td>
+                </tr>
+            """
+        html += """
+            </tbody>
+        </table>
+        """
+
+    html += """
+</div>
+<footer>© 2025 Olex2RTZ</footer>
+</body>
+</html>
+"""
 
     return html
 
@@ -185,3 +215,4 @@ def convert():
         download_name=f"{selected_route['route_name']}.rtz",
         mimetype='application/xml'
     )
+

@@ -2,14 +2,20 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Olex2RTZ</title>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <h1>Convertir un fichier Olex vers RTZ</h1>
-    <form action="/upload" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".gz" required>
-        <br><br>
-        <button type="submit">Analyser le fichier</button>
-    </form>
+    <div class="container">
+        <h1>Convertir un fichier Olex vers RTZ</h1>
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" accept=".gz" required>
+            <button type="submit">Analyser le fichier</button>
+        </form>
+        <footer>
+            © 2025 Olex2RTZ
+        </footer>
+    </div>
 </body>
 </html>
