@@ -91,8 +91,71 @@ def upload():
     global stored_routes
     stored_routes = routes
 
-    # Retourner un message de succès
-    return f"{len(routes)} routes avec waypoints ont été analysées et stockées avec succès."
+    # Générer une réponse HTML pour afficher les routes et leurs waypoints
+    html = "<h1>Routes et Waypoints</h1>"
+    html += "<form method='post' action='/convert'>"
+    html += "<label for='route'>Choisissez une route à convertir :</label>"
+    html += "<select name='route' id='route'>"
+    for route in routes:
+        html += f"<option value='{route['route_name']}'>{route['route_name']}</option>"
+    html += "</select>"
+    html += "<button type='submit'>Convertir</button>"
+    html += "</form>"
+    for route in routes:
+        html += f"<h2>{route['route_name']}</h2>"
+        html += (
+            "<table border='1'>"
+            "<thead><tr>"
+            "<th>Nom</th><th>Latitude</th><th>Longitude</th>"
+            "</tr></thead><tbody>"
+        )
+        for waypoint in route['waypoints']:
+            lat_deg = int(waypoint['lat'])
+            lat_min = abs((waypoint['lat'] - lat_deg) * 60)
+            lon_deg = int(waypoint['lon'])
+            lon_min = abs((waypoint['lon'] - lon_deg) * 60)
+            html += (
+                f"<tr>"
+                f"<td>{waypoint['name']}</td>"
+                f"<td>{lat_deg:02d}° {lat_min:06.3f}'</td>"
+                f"<td>{lon_deg:03d}° {lon_min:06.3f}'</td>"
+                f"</tr>"
+            )
+        html += "</tbody></table>"
 
+    return html
+@app.route('/convert', methods=['POST'])
+def convert():
+    route_name = request.form['route']
+    global stored_routes
+
+    # Trouver la route sélectionnée
+    selected_route = next((r for r in stored_routes if r['route_name'] == route_name), None)
+    if not selected_route:
+        return "Route non trouvée.", 404
+    
+    # Création du fichier RTZ
+    root = ET.Element('route')
+    root.set('name', selected_route['route_name'])
+
+    for waypoint in selected_route['waypoints']:
+        wpt = ET.SubElement(root, 'waypoint')
+        wpt.set('name', waypoint['name'])
+        wpt.set('lat', f"{waypoint['lat']:.6f}")
+        wpt.set('lon', f"{waypoint['lon']:.6f}")
+
+    # Conversion en XML
+    tree = ET.ElementTree(root)
+    xml_data = io.BytesIO()
+    tree.write(xml_data, encoding='utf-8', xml_declaration=True)
+    xml_data.seek(0)
+
+    # Téléchargement du fichier sans compression
+    return send_file(
+        xml_data,
+        as_attachment=True,
+        download_name=f"{selected_route['route_name']}.rtz",
+        mimetype='application/xml'
+    )
 if __name__ == '__main__':
     app.run(debug=True)
