@@ -55,16 +55,21 @@ def upload():
 
     # Analyse des routes et des waypoints
     routes = []
+    unamed_routes = 1
     i = 0
     while i < len(lines):
         line = lines[i].strip()
         if line.startswith('Rute '):
             route_name = line[5:].strip()
-            logging.debug(f"Route trouvée : {route_name} à la ligne {i}")
             if 'Plottsett 8' not in lines[i + 1]:
                 logging.debug(f"Route invalide : {route_name}")
                 i += 1
                 continue
+            if route_name == 'uten navn':
+                route_name = f"Route sans nom {unamed_routes}"
+                unamed_routes += 1
+                logging.debug(f"Route sans nom détectée, nom attribué : {route_name}")
+            logging.debug(f"Route trouvée : {route_name} à la ligne {i}")
 
             waypoints = []
             j = i + 1
