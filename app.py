@@ -2,6 +2,26 @@ from flask import Flask, request, send_file, render_template_string
 import xml.etree.ElementTree as ET
 import io
 import gzip
+import logging
+from logging.handlers import RotatingFileHandler
+
+# Configuration de base des logs avec rotation
+log_handler = RotatingFileHandler(
+    "app.log",  # Nom du fichier de log
+    maxBytes=5 * 1024 * 1024,  # Taille maximale du fichier (5 Mo)
+    backupCount=3  # Nombre de fichiers de sauvegarde
+)
+
+log_handler.setLevel(logging.INFO)
+log_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+logging.basicConfig(
+    level=logging.INFO,
+    handlers=[
+        log_handler,  # Enregistre les logs avec rotation
+        logging.StreamHandler()  # Affiche les logs dans la console
+    ]
+)
 
 app = Flask(__name__)
 
@@ -22,10 +42,16 @@ def index():
 @app.route('/upload', methods=['POST'])
 def upload():
     file = request.files['file']
+    logging.info("Fichier reçu pour traitement.")
 
     # Lecture du fichier gzip
-    with gzip.open(file, 'rt', encoding='utf-8', errors='ignore') as f:
-        lines = f.readlines()
+    try:
+        with gzip.open(file, 'rt', encoding='utf-8', errors='ignore') as f:
+            lines = f.readlines()
+        logging.debug("Fichier gzip décompressé avec succès.")
+    except Exception as e:
+        logging.error(f"Erreur lors de la décompression du fichier : {e}")
+        return "Erreur lors de la décompression du fichier.", 500
 
     # Analyse des routes et des waypoints
     routes = []
@@ -34,23 +60,19 @@ def upload():
         line = lines[i].strip()
         if line.startswith('Rute '):
             route_name = line[5:].strip()
-            print(f"Route trouvée: {route_name} à la ligne {i}")
-            # Vérifier si la route est valide
+            logging.debug(f"Route trouvée : {route_name} à la ligne {i}")
             if 'Plottsett 8' not in lines[i + 1]:
-                print(f"Route invalide: {route_name}")
+                logging.debug(f"Route invalide : {route_name}")
                 i += 1
                 continue
-            # Initialiser les waypoints pour cette route
+
             waypoints = []
             j = i + 1
             while j < len(lines):
                 line_j = lines[j].strip()
-
-                # Si une nouvelle route commence, arrêter l'analyse pour la route actuelle
                 if line_j.startswith('Rute '):
                     break
 
-                # Si un waypoint est trouvé, l'ajouter à la liste
                 parts = line_j.split()
                 if len(parts) >= 3 and all(is_float(p) for p in parts[:3]):
                     lat_min, lon_min, timestamp = parts[0], parts[1], parts[2]
@@ -61,36 +83,35 @@ def upload():
                         'name': ''
                     }
                     waypoints.append(waypoint)
+                    logging.debug(f"Waypoint ajouté : {waypoint}")
 
-                # Si un nom de waypoint est trouvé, l'ajouter au dernier waypoint
                 elif line_j.startswith('Navn ') and waypoints:
                     waypoint_name = line_j[5:].strip()
                     waypoints[-1]['name'] = waypoint_name
+                    logging.debug(f"Nom de waypoint ajouté : {waypoint_name}")
 
                 j += 1
 
-            # Ajouter la route avec ses waypoints si elle en contient
             if waypoints:
                 routes.append({
                     'route_name': route_name,
                     'waypoints': waypoints
                 })
-                print(f"Route ajoutée: {route_name} avec {len(waypoints)} waypoints")
+                logging.info(f"Route ajoutée : {route_name} avec {len(waypoints)} waypoints")
 
-            # Continuer l'analyse à partir de la ligne suivante
             i = j
         else:
             i += 1
 
     if not routes:
+        logging.warning("Aucune route valide trouvée.")
         return "Aucune route valide trouvée.", 400
 
-    # Stocker les routes dans une variable globale ou une session (selon vos besoins)
-    # Exemple : stocker dans une variable globale pour simplifier
     global stored_routes
     stored_routes = routes
+    logging.info(f"{len(routes)} routes valides stockées.")
 
-    # Générer une réponse HTML pour afficher les routes et leurs waypoints
+    # Générer une réponse HTML
     html = """
     <!DOCTYPE html>
     <html lang="fr">
@@ -152,18 +173,22 @@ def upload():
     </html>
     """
 
-    return html  # Return the HTML content here
+    logging.info("Page HTML générée avec succès.")
+    return html
 
 
 @app.route('/convert', methods=['POST'])
 def convert():
     route_name = request.form['route']
-    global stored_routes
+    logging.info(f"Conversion demandée pour la route : {route_name}")
 
+    global stored_routes
     selected_route = next((r for r in stored_routes if r['route_name'] == route_name), None)
     if not selected_route:
+        logging.error(f"Route non trouvée : {route_name}")
         return "Route non trouvée.", 404
 
+    logging.info(f"Route trouvée : {selected_route['route_name']} avec {len(selected_route['waypoints'])} waypoints.")
     # Création du root RTZ
     root = ET.Element('route', {
         'xmlns:xsi': "http://www.w3.org/2001/XMLSchema-instance",
