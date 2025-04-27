@@ -103,9 +103,7 @@ def upload():
 
     if not routes:
         logging.warning("No valid routes found.")
-        return "No valid routes found.", 400
-
-    global stored_routes = []
+    global stored_routes
     stored_routes = routes
     logging.info(f"{len(routes)} valid routes stored.")
 
