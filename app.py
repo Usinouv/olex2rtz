@@ -2,14 +2,15 @@ from flask import Flask, request, send_file, render_template_string
 import xml.etree.ElementTree as ET
 import io
 import gzip
+import json
 import logging
 from logging.handlers import RotatingFileHandler
 
 # Configuration de base des logs avec rotation
 log_handler = RotatingFileHandler(
-    "app.log",  # Nom du fichier de log
-    maxBytes=5 * 1024 * 1024,  # Taille maximale du fichier (5 Mo)
-    backupCount=3  # Nombre de fichiers de sauvegarde
+    "app.log",
+    maxBytes=5 * 1024 * 1024,
+    backupCount=3
 )
 
 log_handler.setLevel(logging.INFO)
@@ -18,8 +19,8 @@ log_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(mess
 logging.basicConfig(
     level=logging.INFO,
     handlers=[
-        log_handler,  # Enregistre les logs avec rotation
-        logging.StreamHandler()  # Affiche les logs dans la console
+        log_handler,
+        logging.StreamHandler()
     ]
 )
 
@@ -44,7 +45,6 @@ def upload():
     file = request.files['file']
     logging.info("Fichier reçu pour traitement.")
 
-    # Lecture du fichier gzip
     try:
         with gzip.open(file, 'rt', encoding='utf-8', errors='ignore') as f:
             lines = f.readlines()
@@ -53,7 +53,6 @@ def upload():
         logging.error(f"Erreur lors de la décompression du fichier : {e}")
         return "Erreur lors de la décompression du fichier.", 500
 
-    # Analyse des routes et des waypoints
     routes = []
     unamed_routes = 1
     i = 0
@@ -62,14 +61,11 @@ def upload():
         if line.startswith('Rute '):
             route_name = line[5:].strip()
             if 'Plottsett 8' not in lines[i + 1]:
-                logging.debug(f"Route invalide : {route_name}")
                 i += 1
                 continue
             if route_name == 'uten navn':
                 route_name = f"Route sans nom {unamed_routes}"
                 unamed_routes += 1
-                logging.debug(f"Route sans nom détectée, nom attribué : {route_name}")
-            logging.debug(f"Route trouvée : {route_name} à la ligne {i}")
 
             waypoints = []
             j = i + 1
@@ -88,12 +84,10 @@ def upload():
                         'name': ''
                     }
                     waypoints.append(waypoint)
-                    logging.debug(f"Waypoint ajouté : {waypoint}")
 
                 elif line_j.startswith('Navn ') and waypoints:
                     waypoint_name = line_j[5:].strip()
                     waypoints[-1]['name'] = waypoint_name
-                    logging.debug(f"Nom de waypoint ajouté : {waypoint_name}")
 
                 j += 1
 
@@ -102,7 +96,6 @@ def upload():
                     'route_name': route_name,
                     'waypoints': waypoints
                 })
-                logging.info(f"Route ajoutée : {route_name} avec {len(waypoints)} waypoints")
 
             i = j
         else:
@@ -116,8 +109,9 @@ def upload():
     stored_routes = routes
     logging.info(f"{len(routes)} routes valides stockées.")
 
-    # Générer une réponse HTML
-    html = """
+    routes_js = {r['route_name']: [{"lat": w['lat'], "lon": w['lon']} for w in r['waypoints']] for r in routes}
+
+    html = f"""
     <!DOCTYPE html>
     <html lang="fr">
     <head>
@@ -125,6 +119,7 @@ def upload():
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Routes et Waypoints</title>
         <link rel="stylesheet" href="/static/styles.css">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     </head>
     <body>
     <div class="container">
@@ -135,11 +130,83 @@ def upload():
     """
     for route in routes:
         html += f"<option value='{route['route_name']}'>{route['route_name']}</option>"
+
     html += """
             </select>
             <button type="submit">Convertir</button>
         </form>
-        """
+
+        <!-- La carte juste ici -->
+        <div id="map" style="height: 500px; margin-top: 20px; margin-bottom: 20px;"></div>
+
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script>
+            var routes = """ + json.dumps(routes_js) + """;
+
+            var map = L.map('map').setView([0, 0], 2);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://carto.com/attributions">CartoDB</a>',
+    maxZoom: 19
+}).addTo(map);
+
+            var currentRoute = null;
+            var currentMarkers = [];
+
+            // Crée une icône circulaire pour les waypoints
+            const circleIcon = L.divIcon({
+                className: 'leaflet-marker-icon',
+                iconSize: [12, 12], 
+                iconAnchor: [6, 6], 
+                popupAnchor: [0, -10],
+                style: {
+                    'background-color': '#004080',
+                    'border-radius': '50%',
+                    'width': '12px',
+                    'height': '12px',
+                    'border': 'none',
+                    'box-shadow': '0 0 10px rgba(0, 0, 0, 0.3)',
+                }
+            });
+
+            function updateMap(routeName) {
+                if (currentRoute) {
+                    map.removeLayer(currentRoute);
+                }
+                currentMarkers.forEach(function(marker) {
+                    map.removeLayer(marker);
+                });
+                currentMarkers = [];
+
+                var waypoints = routes[routeName];
+                if (!waypoints) {
+                    console.error("Route inconnue : " + routeName);
+                    return;
+                }
+
+                var latlngs = waypoints.map(function(wp) {
+                    return [wp.lat, wp.lon];
+                });
+
+                latlngs.forEach(function(coords, index) {
+                    var marker = L.marker(coords, {icon: circleIcon}).addTo(map)
+                        .bindPopup("WP" + (index+1));
+                    currentMarkers.push(marker);
+                });
+
+                currentRoute = L.polyline(latlngs, {color: 'blue'}).addTo(map);
+                map.fitBounds(currentRoute.getBounds());
+            }
+
+            document.getElementById('route').addEventListener('change', function() {
+                updateMap(this.value);
+            });
+
+            window.onload = function() {
+                var initialRoute = document.getElementById('route').value;
+                updateMap(initialRoute);
+            };
+        </script>
+    """
 
     for route in routes:
         html += f"<h2>{route['route_name']}</h2>"
@@ -193,8 +260,6 @@ def convert():
         logging.error(f"Route non trouvée : {route_name}")
         return "Route non trouvée.", 404
 
-    logging.info(f"Route trouvée : {selected_route['route_name']} avec {len(selected_route['waypoints'])} waypoints.")
-    # Création du root RTZ
     root = ET.Element('route', {
         'xmlns:xsi': "http://www.w3.org/2001/XMLSchema-instance",
         'xmlns:xsd': "http://www.w3.org/2001/XMLSchema",
@@ -202,15 +267,12 @@ def convert():
         'version': "1.0"
     })
 
-    # Informations générales
     route_info = ET.SubElement(root, 'routeInfo', {
         'routeName': selected_route['route_name'],
     })
 
-    # Waypoints
     waypoints_el = ET.SubElement(root, 'waypoints')
 
-    # Default Waypoint
     default_wp = ET.SubElement(waypoints_el, 'defaultWaypoint', {'radius': "0.30"})
     ET.SubElement(default_wp, 'leg', {
         'starboardXTD': "0.10",
@@ -220,7 +282,6 @@ def convert():
         'geometryType': "Loxodrome",
     })
 
-    # Les waypoints individuels
     for idx, waypoint in enumerate(selected_route['waypoints'], start=1):
         wp = ET.SubElement(waypoints_el, 'waypoint', {
             'id': str(idx),
@@ -232,17 +293,14 @@ def convert():
         })
         ET.SubElement(wp, 'leg', {'legInfo': ""})
 
-    # Finalisation XML
     xml_data = io.BytesIO()
     tree = ET.ElementTree(root)
     tree.write(xml_data, encoding='utf-8', xml_declaration=True)
     xml_data.seek(0)
 
-    # Téléchargement
     return send_file(
         xml_data,
         as_attachment=True,
         download_name=f"{selected_route['route_name']}.rtz",
         mimetype='application/xml'
     )
-
