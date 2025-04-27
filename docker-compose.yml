@@ -9,3 +9,17 @@ services:
       - .:/app
     environment:
       - FLASK_ENV=production
+    labels:
+     - "traefik.enable=true"
+     - "traefik.http.routers.olex2rtz.rule=Host(`olex2rtz.aldh.eu`)"
+     - "traefik.http.routers.olex2rtz.entrypoints=websecure"
+     - "traefik.http.routers.olex2rtz.tls.certresolver=gregson"
+     - "traefik.http.services.olex2rtz.loadbalancer.server.port=5000"
+    networks:
+      - web
+    restart: unless-stopped
+
+
+networks:
+  web:
+    external: true
