@@ -2,7 +2,6 @@ from flask import Flask, request, send_file, render_template_string
 import xml.etree.ElementTree as ET
 import io
 import gzip
-import base64
 
 app = Flask(__name__)
 
@@ -92,29 +91,29 @@ def upload():
     stored_routes = routes
 
     # Générer une réponse HTML pour afficher les routes et leurs waypoints
-html = """
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Routes et Waypoints</title>
-    <link rel="stylesheet" href="/static/styles.css">
-</head>
-<body>
-<div class="container">
-    <h1>Routes et Waypoints</h1>
-    <form method="post" action="/convert">
-        <label for="route">Choisissez une route à convertir :</label>
-        <select name="route" id="route">
+    html = """
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Routes et Waypoints</title>
+        <link rel="stylesheet" href="/static/styles.css">
+    </head>
+    <body>
+    <div class="container">
+        <h1>Routes et Waypoints</h1>
+        <form method="post" action="/convert">
+            <label for="route">Choisissez une route à convertir :</label>
+            <select name="route" id="route">
     """
     for route in routes:
         html += f"<option value='{route['route_name']}'>{route['route_name']}</option>"
     html += """
-        </select>
-        <button type="submit">Convertir</button>
-    </form>
-    """
+            </select>
+            <button type="submit">Convertir</button>
+        </form>
+        """
 
     for route in routes:
         html += f"<h2>{route['route_name']}</h2>"
@@ -147,13 +146,14 @@ html = """
         """
 
     html += """
-</div>
-<footer>© 2025 Olex2RTZ</footer>
-</body>
-</html>
-"""
+    </div>
+    <footer>© 2025 Olex2RTZ</footer>
+    </body>
+    </html>
+    """
 
-    return html
+    return html  # Return the HTML content here
+
 
 @app.route('/convert', methods=['POST'])
 def convert():
