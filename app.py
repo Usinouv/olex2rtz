@@ -6,7 +6,7 @@ import json
 import logging
 from logging.handlers import RotatingFileHandler
 
-# Configuration de base des logs avec rotation
+# Basic log configuration with rotation
 log_handler = RotatingFileHandler(
     "app.log",
     maxBytes=5 * 1024 * 1024,
@@ -43,15 +43,15 @@ def index():
 @app.route('/upload', methods=['POST'])
 def upload():
     file = request.files['file']
-    logging.info("Fichier reçu pour traitement.")
+    logging.info("File received for processing.")
 
     try:
         with gzip.open(file, 'rt', encoding='utf-8', errors='ignore') as f:
             lines = f.readlines()
-        logging.debug("Fichier gzip décompressé avec succès.")
+        logging.debug("Gzip file successfully decompressed.")
     except Exception as e:
-        logging.error(f"Erreur lors de la décompression du fichier : {e}")
-        return "Erreur lors de la décompression du fichier.", 500
+        logging.error(f"Error during file decompression: {e}")
+        return "Error during file decompression.", 500
 
     routes = []
     unamed_routes = 1
@@ -64,7 +64,7 @@ def upload():
                 i += 1
                 continue
             if route_name == 'uten navn':
-                route_name = f"Route sans nom {unamed_routes}"
+                route_name = f"Unnamed Route {unamed_routes}"
                 unamed_routes += 1
 
             waypoints = []
@@ -102,30 +102,30 @@ def upload():
             i += 1
 
     if not routes:
-        logging.warning("Aucune route valide trouvée.")
-        return "Aucune route valide trouvée.", 400
+        logging.warning("No valid routes found.")
+        return "No valid routes found.", 400
 
     global stored_routes
     stored_routes = routes
-    logging.info(f"{len(routes)} routes valides stockées.")
+    logging.info(f"{len(routes)} valid routes stored.")
 
     routes_js = {r['route_name']: [{"lat": w['lat'], "lon": w['lon']} for w in r['waypoints']] for r in routes}
 
     html = f"""
     <!DOCTYPE html>
-    <html lang="fr">
+    <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Routes et Waypoints</title>
+        <title>Routes and Waypoints</title>
         <link rel="stylesheet" href="/static/styles.css">
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     </head>
     <body>
     <div class="container">
-        <h1>Routes et Waypoints</h1>
+        <h1>Routes and Waypoints</h1>
         <form method="post" action="/convert">
-            <label for="route">Choisissez une route à convertir :</label>
+            <label for="route">Choose a route to convert:</label>
             <select name="route" id="route">
     """
     for route in routes:
@@ -133,10 +133,10 @@ def upload():
 
     html += """
             </select>
-            <button type="submit">Convertir</button>
+            <button type="submit">Convert</button>
         </form>
 
-        <!-- La carte juste ici -->
+        <!-- The map here -->
         <div id="map" style="height: 500px; margin-top: 20px; margin-bottom: 20px;"></div>
 
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -152,7 +152,7 @@ def upload():
             var currentRoute = null;
             var currentMarkers = [];
 
-            // Crée une icône circulaire pour les waypoints
+            // Create a circular icon for waypoints
             const circleIcon = L.divIcon({
                 className: 'leaflet-marker-icon',
                 iconSize: [12, 12], 
@@ -179,7 +179,7 @@ def upload():
 
                 var waypoints = routes[routeName];
                 if (!waypoints) {
-                    console.error("Route inconnue : " + routeName);
+                    console.error("Unknown route: " + routeName);
                     return;
                 }
 
@@ -214,7 +214,7 @@ def upload():
         <table class="waypoints-table">
             <thead>
                 <tr>
-                    <th>Nom</th>
+                    <th>Name</th>
                     <th>Latitude</th>
                     <th>Longitude</th>
                 </tr>
@@ -245,20 +245,20 @@ def upload():
     </html>
     """
 
-    logging.info("Page HTML générée avec succès.")
+    logging.info("HTML page successfully generated.")
     return html
 
 
 @app.route('/convert', methods=['POST'])
 def convert():
     route_name = request.form['route']
-    logging.info(f"Conversion demandée pour la route : {route_name}")
+    logging.info(f"Conversion requested for route: {route_name}")
 
     global stored_routes
     selected_route = next((r for r in stored_routes if r['route_name'] == route_name), None)
     if not selected_route:
-        logging.error(f"Route non trouvée : {route_name}")
-        return "Route non trouvée.", 404
+        logging.error(f"Route not found: {route_name}")
+        return "Route not found.", 404
 
     root = ET.Element('route', {
         'xmlns:xsi': "http://www.w3.org/2001/XMLSchema-instance",
