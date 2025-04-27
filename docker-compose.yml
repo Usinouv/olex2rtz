@@ -12,6 +12,8 @@ services:
      - "traefik.http.services.olex2rtz.loadbalancer.server.port=5000"
     networks:
       - web
+    volumes:
+      - ./app.log:/app/app.log  # Mount the log file to the host system
     restart: unless-stopped
 
 networks:
