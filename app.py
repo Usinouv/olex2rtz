@@ -24,9 +24,6 @@ logging.basicConfig(
     ]
 )
 
-# Initialisation de la variable globale
-stored_routes = []
-
 app = Flask(__name__)
 
 def minutes_to_degrees(minutes):
@@ -108,7 +105,7 @@ def upload():
         logging.warning("No valid routes found.")
         return "No valid routes found.", 400
 
-    global stored_routes
+    global stored_routes = []
     stored_routes = routes
     logging.info(f"{len(routes)} valid routes stored.")
 
