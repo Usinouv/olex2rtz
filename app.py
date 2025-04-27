@@ -2,6 +2,7 @@ from flask import Flask, request, send_file, render_template_string
 import xml.etree.ElementTree as ET
 import io
 import gzip
+import base64
 
 app = Flask(__name__)
 
@@ -27,113 +28,71 @@ def upload():
     with gzip.open(file, 'rt', encoding='utf-8', errors='ignore') as f:
         lines = f.readlines()
 
-    # Analyse de toutes les routes
+    # Analyse des routes et des waypoints
     routes = []
     i = 0
     while i < len(lines):
         line = lines[i].strip()
         if line.startswith('Rute '):
             route_name = line[5:].strip()
-            print(f"Route trouvée: {route_name}")
-            # Chercher si Plottsett 8 suit cette route
-            j = i+1
+            print(f"Route trouvée: {route_name} à la ligne {i}")
+            # Vérifier si la route est valide
+            if 'Plottsett 8' not in lines[i + 1]:
+                print(f"Route invalide: {route_name}")
+                i += 1
+                continue
+            # Initialiser les waypoints pour cette route
+            waypoints = []
+            j = i + 1
             while j < len(lines):
-                print(f"Vérification de la ligne: {lines[j].strip()}")
-                if lines[j].strip().startswith('Plottsett 8'):
-                    routes.append(route_name)
-                    print(f"Route ajoutée: {route_name}")
+                line_j = lines[j].strip()
+
+                # Si une nouvelle route commence, arrêter l'analyse pour la route actuelle
+                if line_j.startswith('Rute '):
                     break
-                elif lines[j].strip().startswith('Rute '):
-                    print(f"Route ignorée: {route_name}")
-                    break
+
+                # Si un waypoint est trouvé, l'ajouter à la liste
+                parts = line_j.split()
+                if len(parts) >= 3 and all(is_float(p) for p in parts[:3]):
+                    lon_min, lat_min, timestamp = parts[0], parts[1], parts[2]
+                    waypoint = {
+                        'lat': minutes_to_degrees(lat_min),
+                        'lon': minutes_to_degrees(lon_min),
+                        'timestamp': timestamp,
+                        'name': ''
+                    }
+                    waypoints.append(waypoint)
+
+                # Si un nom de waypoint est trouvé, l'ajouter au dernier waypoint
+                elif line_j.startswith('Navn ') and waypoints:
+                    waypoint_name = line_j[5:].strip()
+                    waypoints[-1]['name'] = waypoint_name
+
                 j += 1
-        i += 1
+
+            # Ajouter la route avec ses waypoints si elle en contient
+            if waypoints:
+                routes.append({
+                    'route_name': route_name,
+                    'waypoints': waypoints
+                })
+                print(f"Route ajoutée: {route_name} avec {len(waypoints)} waypoints")
+
+            # Continuer l'analyse à partir de la ligne suivante
+            i = j
+        else:
+            i += 1
 
     if not routes:
         return "Aucune route valide trouvée.", 400
 
-    # Générer le HTML de sélection
-    return render_template_string('''
-        <h1>Choisissez la route à convertir</h1>
-        <form action="/convert" method="post">
-            <input type="hidden" name="filedata" value="{{filedata}}">
-            <select name="route" required>
-            {% for route in routes %}
-                <option value="{{route}}">{{route}}</option>
-            {% endfor %}
-            </select>
-            <br><br>
-            <button type="submit">Convertir en RTZ</button>
-        </form>
-    ''', routes=routes, filedata=file.read().decode('latin1'))  # encode tout pour renvoyer facilement
+    # Stocker les routes dans une variable globale ou une session (selon vos besoins)
+    # Exemple : stocker dans une variable globale pour simplifier
+    global stored_routes
+    stored_routes = routes
 
-@app.route('/convert', methods=['POST'])
-def convert():
-    selected_route = request.form['route']
-    filedata = request.form['filedata']
-
-    lines = filedata.splitlines()
-
-    waypoints = []
-    reading_route = False
-    current_wp = None
-    route_name = None
-
-    i = 0
-    while i < len(lines):
-        line = lines[i].strip()
-
-        if line.startswith('Rute '):
-            name = line[5:].strip()
-            if name == selected_route:
-                route_name = name
-
-        if route_name and line.startswith('Plottsett 8'):
-            reading_route = True
-            i += 1
-            continue
-
-        if reading_route:
-            if line.startswith('Rute ') or line.startswith('Rutetype ') or line.startswith('Fikspos') or line.startswith('Plottsett '):
-                break
-
-            parts = line.split()
-            if len(parts) >= 3 and all(is_float(p) for p in parts[:3]):
-                lon_min, lat_min, timestamp = parts[0], parts[1], parts[2]
-                current_wp = {
-                    'lat': minutes_to_degrees(lat_min),
-                    'lon': minutes_to_degrees(lon_min),
-                    'timestamp': timestamp,
-                    'name': ''
-                }
-                i += 1
-                continue
-
-            if line.startswith('Navn ') and current_wp:
-                name = line[5:].strip()
-                current_wp['name'] = name
-                waypoints.append(current_wp)
-                current_wp = None
-
-        i += 1
-
-    if not waypoints:
-        return "Aucun waypoint trouvé pour la route sélectionnée.", 400
-
-    # Création du fichier RTZ
-    route = ET.Element('route', version='1.0', xmlns='http://www.cirm.org/RTZ/1/0')
-    ET.SubElement(route, 'routeInfo', routeName=route_name)
-    waypoints_element = ET.SubElement(route, 'waypoints')
-
-    for idx, wp in enumerate(waypoints, start=1):
-        ET.SubElement(waypoints_element, 'waypoint', id=str(idx), lat=str(wp['lat']), lon=str(wp['lon']), name=wp['name'])
-
-    tree = ET.ElementTree(route)
-    output = io.BytesIO()
-    tree.write(output, encoding='utf-8', xml_declaration=True)
-    output.seek(0)
-
-    return send_file(output, as_attachment=True, download_name=f'{route_name}.rtz', mimetype='application/xml')
+    # Retourner un message de succès
+    return f"{len(routes)} routes avec waypoints ont été analysées et stockées avec succès."
 
 if __name__ == '__main__':
     app.run(debug=True)
