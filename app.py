@@ -54,7 +54,7 @@ def upload():
                 # Si un waypoint est trouvé, l'ajouter à la liste
                 parts = line_j.split()
                 if len(parts) >= 3 and all(is_float(p) for p in parts[:3]):
-                    lon_min, lat_min, timestamp = parts[0], parts[1], parts[2]
+                    lat_min, lon_min, timestamp = parts[0], parts[1], parts[2]
                     waypoint = {
                         'lat': minutes_to_degrees(lat_min),
                         'lon': minutes_to_degrees(lon_min),
@@ -124,38 +124,68 @@ def upload():
         html += "</tbody></table>"
 
     return html
+
 @app.route('/convert', methods=['POST'])
 def convert():
     route_name = request.form['route']
     global stored_routes
 
-    # Trouver la route sélectionnée
     selected_route = next((r for r in stored_routes if r['route_name'] == route_name), None)
     if not selected_route:
         return "Route non trouvée.", 404
-    
-    # Création du fichier RTZ
-    root = ET.Element('route')
-    root.set('name', selected_route['route_name'])
 
-    for waypoint in selected_route['waypoints']:
-        wpt = ET.SubElement(root, 'waypoint')
-        wpt.set('name', waypoint['name'])
-        wpt.set('lat', f"{waypoint['lat']:.6f}")
-        wpt.set('lon', f"{waypoint['lon']:.6f}")
+    # Création du root RTZ
+    root = ET.Element('route', {
+        'xmlns:xsi': "http://www.w3.org/2001/XMLSchema-instance",
+        'xmlns:xsd': "http://www.w3.org/2001/XMLSchema",
+        'xmlns': "http://www.cirm.org/RTZ/1/0",
+        'version': "1.0"
+    })
 
-    # Conversion en XML
-    tree = ET.ElementTree(root)
+    # Informations générales
+    route_info = ET.SubElement(root, 'routeInfo', {
+        'routeName': selected_route['route_name'],
+    })
+
+    # Waypoints
+    waypoints_el = ET.SubElement(root, 'waypoints')
+
+    # Default Waypoint
+    default_wp = ET.SubElement(waypoints_el, 'defaultWaypoint', {'radius': "0.30"})
+    ET.SubElement(default_wp, 'leg', {
+        'starboardXTD': "0.10",
+        'portsideXTD': "0.10",
+        'safetyContour': "20",
+        'safetyDepth': "20",
+        'geometryType': "Loxodrome",
+    })
+
+    # Les waypoints individuels
+    for idx, waypoint in enumerate(selected_route['waypoints'], start=1):
+        wp = ET.SubElement(waypoints_el, 'waypoint', {
+            'id': str(idx),
+            'name': waypoint['name'] or ""
+        })
+        ET.SubElement(wp, 'position', {
+            'lat': f"{waypoint['lat']:.8f}",
+            'lon': f"{waypoint['lon']:.8f}"
+        })
+        ET.SubElement(wp, 'leg', {'legInfo': ""})
+
+    # Finalisation XML
     xml_data = io.BytesIO()
+    tree = ET.ElementTree(root)
     tree.write(xml_data, encoding='utf-8', xml_declaration=True)
     xml_data.seek(0)
 
-    # Téléchargement du fichier sans compression
+    # Téléchargement
     return send_file(
         xml_data,
         as_attachment=True,
         download_name=f"{selected_route['route_name']}.rtz",
         mimetype='application/xml'
     )
+
+
 if __name__ == '__main__':
     app.run(debug=True)
