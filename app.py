@@ -24,6 +24,9 @@ logging.basicConfig(
     ]
 )
 
+# Initialisation de la variable globale
+stored_routes = []
+
 app = Flask(__name__)
 
 def minutes_to_degrees(minutes):
