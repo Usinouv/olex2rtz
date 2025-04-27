@@ -100,7 +100,7 @@ L'application sera accessible à l'adresse [http://localhost:5000](http://localh
 Si vous préférez utiliser `docker-compose`, exécutez simplement :
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
 Cela construira l'image et lancera le conteneur. L'application sera également accessible à [http://localhost:5000](http://localhost:5000).
