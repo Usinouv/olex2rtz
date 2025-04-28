@@ -29,27 +29,91 @@ form {
     margin-bottom: 20px;
 }
 
-/* Limiter la largeur des champs de formulaire et des boutons */
-form input[type="file"], form select, form button, form input[type="text"] {
+/* Champs texte et liste */
+form input[type="text"], 
+form select {
     max-width: 300px;
     width: 100%;
     margin: 0 auto;
     display: block;
+    height: 45px;
+    padding: 0 15px;
+    font-size: 1em;
+    box-sizing: border-box;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    background-color: #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
 }
 
-button {
+/* Champ fichier */
+form input[type="file"] {
+    max-width: 300px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    height: 45px;
+    font-size: 1em;
+    box-sizing: border-box;
+    border: none;
+    background: none;
+    padding: 0;
+}
+
+/* Style du bouton "Choisir un fichier" */
+form input[type="file"]::-webkit-file-upload-button {
+    height: 100%;
+    padding: 0 15px;
     background-color: #004080;
     color: white;
     border: none;
-    padding: 10px 15px;
-    border-radius: 5px;
-    font-size: 1em;
+    border-radius: 8px;
+    font-weight: bold;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s;
 }
 
-button:hover {
+form input[type="file"]::-webkit-file-upload-button:hover {
     background-color: #00264d;
+}
+
+/* Focus et hover des champs texte/liste */
+form input[type="text"]:focus, 
+form select:focus {
+    border-color: #004080;
+    box-shadow: 0 0 6px rgba(0, 64, 128, 0.3);
+    outline: none;
+}
+
+form input[type="text"]:hover, 
+form select:hover {
+    border-color: #888;
+}
+
+/* Bouton général */
+form button {
+    max-width: 300px;
+    width: 100%;
+    margin: 0 auto;
+    display: block;
+    height: 45px;
+    padding: 0 15px;
+    font-size: 1em;
+    box-sizing: border-box;
+    background-color: #004080;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+form button:hover {
+    background-color: #00264d;
+    box-shadow: 0 4px 8px rgba(0, 64, 128, 0.2);
 }
 
 /* --------- Table styles --------- */
@@ -61,7 +125,6 @@ table {
     font-size: 0.9em;
     background-color: #ffffff;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    overflow-x: auto;
     border-radius: 8px;
     overflow: hidden;
 }
@@ -254,10 +317,11 @@ input:checked + .slider:before {
     font-size: 0.9em;
     color: #666;
 }
+
 /* Style discret pour le bouton Help */
 .help-button {
-    background-color: #e0e7ff; /* bleu très pâle */
-    color: #004080; /* bleu foncé texte */
+    background-color: #e0e7ff;
+    color: #004080;
     padding: 8px 16px;
     border: 2px solid #004080;
     border-radius: 5px;
@@ -270,7 +334,7 @@ input:checked + .slider:before {
 }
 
 .help-button:hover {
-    background-color: #c0cfff; /* hover : plus sombre qu'avant */
+    background-color: #c0cfff;
     color: #00264d;
 }
 
