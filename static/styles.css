@@ -1,3 +1,4 @@
+/* --------- Styles généraux --------- */
 body {
     font-family: Arial, sans-serif;
     background-color: #f4f4f9;
@@ -51,6 +52,7 @@ button:hover {
     background-color: #00264d;
 }
 
+/* --------- Table styles --------- */
 table {
     width: 100%;
     max-width: 800px;
@@ -97,6 +99,7 @@ table tr:hover {
     background-color: #e6f0ff;
 }
 
+/* Footer */
 footer {
     text-align: center;
     margin-top: 20px;
@@ -126,14 +129,14 @@ footer {
     }
 }
 
-/* Custom styles for Leaflet map and waypoints */
+/* Leaflet map */
 #map {
     height: 400px;
     width: 100%;
     margin-bottom: 30px;
 }
 
-/* Styling for the circular markers (waypoints) */
+/* Waypoints */
 .leaflet-marker-icon {
     background-color: #004080;
     border-radius: 50%;
@@ -141,4 +144,136 @@ footer {
     height: 12px;
     border: none;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Switch button */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 34px;
+    height: 20px;
+    margin-left: 10px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.4s;
+    border-radius: 20px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #004080;
+}
+
+input:checked + .slider:before {
+    transform: translateX(14px);
+}
+
+/* --------- Styles spécifiques pour l'AIDE --------- */
+.help-content {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    text-align: left;
+}
+
+.help-content h1, .help-content h2 {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.help-content ol {
+    margin: 1rem 0;
+    padding-left: 1.5rem;
+}
+
+.help-content li {
+    margin-bottom: 0.8rem;
+}
+
+.help-content img {
+    margin: 1rem auto;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+.help-content p {
+    margin: 1rem 0;
+}
+
+.help-content a.button {
+    display: inline-block;
+    margin-top: 2rem;
+    background-color: #004080;
+    color: #ffffff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: background-color 0.3s;
+    text-align: center;
+}
+
+.help-content a.button:hover {
+    background-color: #00264d;
+}
+
+.help-content footer {
+    margin-top: 2rem;
+    text-align: center;
+    font-size: 0.9em;
+    color: #666;
+}
+/* Style discret pour le bouton Help */
+.help-button {
+    background-color: #e0e7ff; /* bleu très pâle */
+    color: #004080; /* bleu foncé texte */
+    padding: 8px 16px;
+    border: 2px solid #004080;
+    border-radius: 5px;
+    display: inline-block;
+    margin-top: 20px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: background-color 0.3s, color 0.3s;
+    font-size: 0.95em;
+}
+
+.help-button:hover {
+    background-color: #c0cfff; /* hover : plus sombre qu'avant */
+    color: #00264d;
+}
+
+.help-button i {
+    margin-right: 6px;
 }

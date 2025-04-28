@@ -153,7 +153,11 @@ def upload():
         """
             </select>
             <label for="toggle_rename" style="display: block; margin-top: 10px;">
-                <input type="checkbox" id="toggle_rename" style="margin-right: 5px;"> Rename the route
+                <span>Rename the route</span>
+                <label class="switch">
+                    <input type="checkbox" id="toggle_rename">
+                    <span class="slider"></span>
+                </label>
             </label>
             <div id="rename_field" style="display: none; margin-top: 10px;">
                 <input type="text" name="new_name" id="new_name" placeholder="Enter new route name">
