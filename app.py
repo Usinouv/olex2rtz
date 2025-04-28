@@ -1,10 +1,20 @@
-from flask import Flask, request, send_file, render_template_string
+from flask import Flask, request, send_file, session
 import xml.etree.ElementTree as ET
 import io
 import gzip
 import json
 import logging
 from logging.handlers import RotatingFileHandler
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env
+load_dotenv()
+
+# Flask app setup
+app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY", "default_dev_secret_JQ$5xWp5")
+app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024  # 8 MB upload limit
 
 # Basic log configuration with rotation
 log_handler = RotatingFileHandler(
@@ -24,8 +34,6 @@ logging.basicConfig(
     ]
 )
 
-app = Flask(__name__)
-
 def minutes_to_degrees(minutes):
     return float(minutes) / 60.0
 
@@ -36,15 +44,22 @@ def is_float(value):
     except ValueError:
         return False
 
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    return "File too large. Maximum allowed size is 8MB.", 413
+
 @app.route('/')
 def index():
     return open('index.html').read()
 
 @app.route('/upload', methods=['POST'])
 def upload():
-    file = request.files['file']
-    logging.info("File received for processing.")
+    file = request.files.get('file')
+    if not file:
+        logging.error("No file uploaded.")
+        return "No file uploaded.", 400
 
+    logging.info("File received for processing.")
     try:
         with gzip.open(file, 'rt', encoding='utf-8', errors='ignore') as f:
             lines = f.readlines()
@@ -60,7 +75,7 @@ def upload():
         line = lines[i].strip()
         if line.startswith('Rute '):
             route_name = line[5:].strip()
-            if 'Plottsett 8' not in lines[i + 1]:
+            if i + 1 >= len(lines) or 'Plottsett 8' not in lines[i + 1]:
                 i += 1
                 continue
             if route_name == 'uten navn':
@@ -84,7 +99,6 @@ def upload():
                         'name': ''
                     }
                     waypoints.append(waypoint)
-
                 elif line_j.startswith('Navn ') and waypoints:
                     waypoint_name = line_j[5:].strip()
                     waypoints[-1]['name'] = waypoint_name
@@ -103,12 +117,14 @@ def upload():
 
     if not routes:
         logging.warning("No valid routes found.")
-    global stored_routes
-    stored_routes = routes
+
+    session['routes'] = json.dumps(routes)  # Sauvegarde en session
     logging.info(f"{len(routes)} valid routes stored.")
 
+    # Prépare les données pour JavaScript
     routes_js = {r['route_name']: [{"lat": w['lat'], "lon": w['lon']} for w in r['waypoints']] for r in routes}
 
+    # Génère la page HTML
     html = f"""
     <!DOCTYPE html>
     <html lang="en">
@@ -134,7 +150,6 @@ def upload():
             <button type="submit">Convert</button>
         </form>
 
-        <!-- The map here -->
         <div id="map" style="height: 500px; margin-top: 20px; margin-bottom: 20px;"></div>
 
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -143,28 +158,12 @@ def upload():
 
             var map = L.map('map').setView([0, 0], 2);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://carto.com/attributions">CartoDB</a>',
-    maxZoom: 19
-}).addTo(map);
+                attribution: '&copy; <a href="https://carto.com/attributions">CartoDB</a>',
+                maxZoom: 19
+            }).addTo(map);
 
             var currentRoute = null;
             var currentMarkers = [];
-
-            // Create a circular icon for waypoints
-            const circleIcon = L.divIcon({
-                className: 'leaflet-marker-icon',
-                iconSize: [12, 12], 
-                iconAnchor: [6, 6], 
-                popupAnchor: [0, -10],
-                style: {
-                    'background-color': '#004080',
-                    'border-radius': '50%',
-                    'width': '12px',
-                    'height': '12px',
-                    'border': 'none',
-                    'box-shadow': '0 0 10px rgba(0, 0, 0, 0.3)',
-                }
-            });
 
             function updateMap(routeName) {
                 if (currentRoute) {
@@ -186,8 +185,8 @@ def upload():
                 });
 
                 latlngs.forEach(function(coords, index) {
-                    var marker = L.marker(coords, {icon: circleIcon}).addTo(map)
-                        .bindPopup("WP" + (index+1));
+                    var marker = L.marker(coords).addTo(map)
+                        .bindPopup("WP" + (index + 1));
                     currentMarkers.push(marker);
                 });
 
@@ -246,13 +245,20 @@ def upload():
     logging.info("HTML page successfully generated.")
     return html
 
-
 @app.route('/convert', methods=['POST'])
 def convert():
-    route_name = request.form['route']
-    logging.info(f"Conversion requested for route: {route_name}")
+    route_name = request.form.get('route')
+    if not route_name:
+        logging.error("No route name provided.")
+        return "No route selected.", 400
 
-    global stored_routes
+    routes_json = session.get('routes')
+    if not routes_json:
+        logging.error("No routes found in session.")
+        return "No routes found.", 400
+
+    stored_routes = json.loads(routes_json)
+
     selected_route = next((r for r in stored_routes if r['route_name'] == route_name), None)
     if not selected_route:
         logging.error(f"Route not found: {route_name}")
@@ -265,21 +271,13 @@ def convert():
         'version': "1.0"
     })
 
-    route_info = ET.SubElement(root, 'routeInfo', {
+    ET.SubElement(root, 'routeInfo', {
         'routeName': selected_route['route_name'],
     })
 
     waypoints_el = ET.SubElement(root, 'waypoints')
 
-    default_wp = ET.SubElement(waypoints_el, 'defaultWaypoint', {'radius': "0.30"})
-    ET.SubElement(default_wp, 'leg', {
-        'starboardXTD': "0.10",
-        'portsideXTD': "0.10",
-        'safetyContour': "20",
-        'safetyDepth': "20",
-        'geometryType': "Loxodrome",
-    })
-
+    ET.SubElement(waypoints_el, 'defaultWaypoint', {'radius': "0.30"})
     for idx, waypoint in enumerate(selected_route['waypoints'], start=1):
         wp = ET.SubElement(waypoints_el, 'waypoint', {
             'id': str(idx),
@@ -302,3 +300,6 @@ def convert():
         download_name=f"{selected_route['route_name']}.rtz",
         mimetype='application/xml'
     )
+
+if __name__ == '__main__':
+    app.run(debug=True)
