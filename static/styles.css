@@ -29,7 +29,7 @@ form {
 }
 
 /* Limiter la largeur des champs de formulaire et des boutons */
-form input[type="file"], form select, form button {
+form input[type="file"], form select, form button, form input[type="text"] {
     max-width: 300px;
     width: 100%;
     margin: 0 auto;

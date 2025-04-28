@@ -46,6 +46,9 @@ def request_entity_too_large(error):
 def index():
     return open("index.html").read()
 
+@app.route("/help")
+def help():
+    return open("help.html").read()
 
 @app.route("/upload", methods=["POST"])
 def upload():
@@ -129,12 +132,15 @@ def upload():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Routes and Waypoints</title>
+        <title>Olex2RTZ</title>
         <link rel="stylesheet" href="/static/styles.css">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><path fill='%23004080' d='M512 96c0 50.2-59.1 125.1-84.6 155c-3.8 4.4-9.4 6.1-14.5 5L320 256c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c53 0 96 43 96 96s-43 96-96 96l-276.4 0c8.7-9.9 19.3-22.6 30-36.8c6.3-8.4 12.8-17.6 19-27.2L416 448c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0c-53 0-96-43-96-96s43-96 96-96l39.8 0c-21-31.5-39.8-67.7-39.8-96c0-53 43-96 96-96s96 43 96 96zM117.1 489.1c-3.8 4.3-7.2 8.1-10.1 11.3l-1.8 2-.2-.2c-6 4.6-14.6 4-20-1.8C59.8 473 0 402.5 0 352c0-53 43-96 96-96s96 43 96 96c0 30-21.1 67-43.5 97.9c-10.7 14.7-21.7 28-30.8 38.5l-.6 .7zM128 352a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zM416 128a32 32 0 1 0 0-64 32 32 0 1 0 0 64z'/></svg>">
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     </head>
     <body>
     <div class="container">
+        <i class="fa-solid fa-route" style="font-size: 50px; color: #004080; margin-bottom: 20px;"></i>
         <h1>Routes and Waypoints</h1>
         <form method="post" action="/convert">
             <label for="route">Choose a route to convert:</label>
@@ -146,6 +152,12 @@ def upload():
     html += (
         """
             </select>
+            <label for="toggle_rename" style="display: block; margin-top: 10px;">
+                <input type="checkbox" id="toggle_rename" style="margin-right: 5px;"> Rename the route
+            </label>
+            <div id="rename_field" style="display: none; margin-top: 10px;">
+                <input type="text" name="new_name" id="new_name" placeholder="Enter new route name">
+            </div>
             <button type="submit">Convert</button>
         </form>
 
@@ -154,8 +166,8 @@ def upload():
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script>
             var routes = """
-        + json.dumps(routes_js)
-        + """;
+    + json.dumps(routes_js)
+    + """;
             var map = L.map('map').setView([0, 0], 2);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://carto.com/attributions">CartoDB</a>',
@@ -219,6 +231,12 @@ def upload():
             document.getElementById('route').addEventListener('change', function() {
                 updateMap(this.value);
             });
+
+            // Toggle rename field visibility
+            document.getElementById('toggle_rename').addEventListener('change', function() {
+                var renameField = document.getElementById('rename_field');
+                renameField.style.display = this.checked ? 'block' : 'none';
+            });
  
             window.onload = function() {
                 var initialRoute = document.getElementById('route').value;
@@ -243,9 +261,9 @@ def upload():
             <tbody>
         """
         for waypoint in route["waypoints"]:
-            lat_deg = int(waypoint["lat"])
+            lat_deg = abs(int(waypoint["lat"]))
             lat_min = abs((waypoint["lat"] - lat_deg) * 60)
-            lon_deg = int(waypoint["lon"])
+            lon_deg = abs(int(waypoint["lon"]))
             lon_min = abs((waypoint["lon"] - lon_deg) * 60)
             lat_direction = "N" if waypoint["lat"] >= 0 else "S"
             lon_direction = "E" if waypoint["lon"] >= 0 else "W"
@@ -263,7 +281,7 @@ def upload():
 
     html += """
     </div>
-    <footer>© 2025 Olex2RTZ</footer>
+    <footer>© 2025 Olex2RTZ - adhont</footer>
     </body>
     </html>
     """
@@ -275,6 +293,7 @@ def upload():
 @app.route("/convert", methods=["POST"])
 def convert():
     route_name = request.form.get("route")
+    new_name = request.form.get("new_name", "").strip()  # Récupérer le nouveau nom
     if not route_name:
         logging.error("No route name provided.")
         return "No route selected.", 400
@@ -293,6 +312,9 @@ def convert():
         logging.error(f"Route not found: {route_name}")
         return "Route not found.", 404
 
+    # Utiliser le nouveau nom si fourni, sinon conserver le nom existant
+    route_name_to_use = new_name if new_name else selected_route["route_name"]
+
     root = ET.Element(
         "route",
         {
@@ -307,7 +329,7 @@ def convert():
         root,
         "routeInfo",
         {
-            "routeName": selected_route["route_name"],
+            "routeName": route_name_to_use,
         },
     )
 
@@ -333,7 +355,7 @@ def convert():
     return send_file(
         xml_data,
         as_attachment=True,
-        download_name=f"{selected_route['route_name']}.rtz",
+        download_name=f"{route_name_to_use}.rtz",  # Utiliser le nouveau nom pour le fichier
         mimetype="application/xml",
     )
 
