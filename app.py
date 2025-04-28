@@ -266,9 +266,9 @@ def upload():
         """
         for waypoint in route["waypoints"]:
             lat_deg = abs(int(waypoint["lat"]))
-            lat_min = abs((waypoint["lat"] - lat_deg) * 60)
+            lat_min = (abs(waypoint["lat"]) - lat_deg) * 60
             lon_deg = abs(int(waypoint["lon"]))
-            lon_min = abs((waypoint["lon"] - lon_deg) * 60)
+            lon_min = (abs(waypoint["lon"]) - lon_deg) * 60
             lat_direction = "N" if waypoint["lat"] >= 0 else "S"
             lon_direction = "E" if waypoint["lon"] >= 0 else "W"
             html += f"""
