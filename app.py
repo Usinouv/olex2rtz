@@ -286,6 +286,10 @@ def upload():
     html += """
     </div>
     <footer>© 2025 Olex2RTZ - adhont</footer>
+    <noscript>
+        <img src="https://shynet.aldh.eu/ingress/14d3e7b2-f88b-4898-a1a1-0377d7359a9f/pixel.gif">
+    </noscript>
+    <script defer src="https://shynet.aldh.eu/ingress/14d3e7b2-f88b-4898-a1a1-0377d7359a9f/script.js"></script>
     </body>
     </html>
     """
