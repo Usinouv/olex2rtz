@@ -112,6 +112,7 @@ def upload():
 
     if not routes:
         logging.warning("No valid routes found.")
+        return "No valid routes found in the uploaded file.", 400  # Message d'erreur pour l'utilisateur
 
     session["routes"] = json.dumps(routes)  # Save routes in session
     logging.info(f"{len(routes)} valid routes stored.")
@@ -287,9 +288,9 @@ def upload():
     </div>
     <footer>© 2025 Olex2RTZ - adhont</footer>
     <noscript>
-        <img src="https://shynet.aldh.eu/ingress/14d3e7b2-f88b-4898-a1a1-0377d7359a9f/pixel.gif">
+        <img src="https://wiggins.aldh.eu/ingress/14d3e7b2-f88b-4898-a1a1-0377d7359a9f/pixel.gif">
     </noscript>
-    <script defer src="https://shynet.aldh.eu/ingress/14d3e7b2-f88b-4898-a1a1-0377d7359a9f/script.js"></script>
+    <script defer src="https://wiggins.aldh.eu/ingress/14d3e7b2-f88b-4898-a1a1-0377d7359a9f/script.js"></script>
     </body>
     </html>
     """
