@@ -1,4 +1,4 @@
-from flask import Flask, request, send_file, session
+from flask import Flask, render_template, request, flash, redirect, url_for, send_file, session
 import xml.etree.ElementTree as ET
 import io
 import gzip
@@ -7,6 +7,9 @@ import logging
 from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # Load environment variables from .env
 load_dotenv()
@@ -44,11 +47,11 @@ def request_entity_too_large(error):
 
 @app.route("/")
 def index():
-    return open("index.html").read()
+    return render_template("index.html")
 
 @app.route("/help")
 def help():
-    return open("help.html").read()
+    return render_template("help.html")
 
 @app.route("/upload", methods=["POST"])
 def upload():
@@ -367,6 +370,86 @@ def convert():
         download_name=f"{route_name_to_use}.rtz",  # Utiliser le nouveau nom pour le fichier
         mimetype="application/xml",
     )
+
+
+@app.route("/contact", methods=["GET", "POST"])
+def contact():
+    if request.method == "POST":
+        name = request.form.get("name")
+        email = request.form.get("email")
+        subject = request.form.get("subject")
+        message = request.form.get("message")
+
+        if not name or not email or not subject or not message:
+            flash("All fields are required.", "error")
+            return redirect(url_for("contact"))
+
+        # Configuration de l'e-mail
+        sender_email = os.getenv("SENDER_EMAIL")  # Remplacez par votre e-mail
+        receiver_email = os.getenv("RECEIVER_EMAIL")  # Remplacez par l'e-mail de réception
+        password = os.getenv("EMAIL_PASSWORD")  # Stockez le mot de passe dans une variable d'environnement
+
+        try:
+            # Lire les 10 dernières minutes de logs
+            log_file_path = "app.log"  # Chemin vers le fichier de logs
+            recent_logs = []
+            if os.path.exists(log_file_path):
+                with open(log_file_path, "r") as log_file:
+                    for line in log_file:
+                        # Ajoutez ici une logique pour filtrer les logs récents si nécessaire
+                        recent_logs.append(line.strip())
+                # Garder uniquement les 50 dernières lignes (par exemple)
+                recent_logs = recent_logs[-50:]
+
+            # Préparer les logs pour l'e-mail
+            logs_text = "\n".join(recent_logs)
+
+            # Création du message
+            msg = MIMEMultipart()
+            msg["From"] = sender_email
+            msg["To"] = receiver_email
+            msg["Subject"] = f"[Olex2RTZ] {subject}"
+
+            body = f"""
+            Nom : {name}
+            E-mail : {email}
+            Sujet : {subject}
+            Message :
+            {message}
+
+            --- Logs récents ---
+            {logs_text}
+            """
+            msg.attach(MIMEText(body, "plain"))
+
+            # Envoi de l'e-mail
+            smtp_server = os.getenv("SMTP_SERVER")
+            smtp_port = os.getenv("SMTP_PORT")
+            if not smtp_port or not smtp_port.isdigit():
+                logging.error("SMTP_PORT is not defined or invalid.")
+                flash("SMTP configuration is invalid. Please contact the administrator.", "error")
+                return redirect(url_for("contact"))
+            smtp_port = int(smtp_port)
+
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                logging.info("Connecting to SMTP server...")
+                server.connect(smtp_server, smtp_port)  # Établir explicitement la connexion
+                server.starttls()  # Démarrer une connexion sécurisée
+                logging.info("Starting TLS...")
+                server.login(sender_email, password)  # Authentification
+                logging.info("Logged in to SMTP server.")
+                server.sendmail(sender_email, receiver_email, msg.as_string())  # Envoi de l'e-mail
+                logging.info("Email sent successfully.")
+
+            flash("Your message has been sent successfully!", "success")
+            return redirect(url_for("contact"))
+
+        except Exception as e:
+            logging.error(f"Error sending email: {e}")
+            flash("An error occurred while sending your message. Please try again later.", "error")
+            return redirect(url_for("contact"))
+
+    return render_template("contact.html")
 
 
 if __name__ == "__main__":

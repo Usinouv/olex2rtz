@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Olex2RTZ{% endblock %}</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="page-wrapper">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>© 2025 Olex2RTZ - <a href="/contact" class="contact-link">Contact Us</a></p>
+    </footer>
+
+    <noscript>
+        <img src="https://wiggins.aldh.eu/ingress/14d3e7b2-f88b-4898-a1a1-0377d7359a9f/pixel.gif" alt="Analytics tracking pixel">
+    </noscript>
+    <script defer src="https://wiggins.aldh.eu/ingress/14d3e7b2-f88b-4898-a1a1-0377d7359a9f/script.js"></script>
+</body>
+</html>

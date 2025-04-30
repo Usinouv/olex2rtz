@@ -1,27 +1,42 @@
 /* --------- Styles généraux --------- */
-body {
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
     font-family: Arial, sans-serif;
     background-color: #f4f4f9;
-    margin: 0;
-    padding: 20px;
     color: #333333;
-    text-align: center; 
+    text-align: center;
+    display: flex;
+    flex-direction: column;
 }
 
+/* Wrapper pour footer sticky */
+.page-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Container central */
 .container {
+    max-width: 800px;           /* largeur standard */
+    width: 90%;                  /* pour s’adapter aux petits écrans */
+    margin: 40px auto;           /* espace autour */
+    padding: 30px;               /* espace interne */
     background: #ffffff;
-    padding: 20px 30px;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    max-width: 800px;
-    margin: 0 auto;
+    box-sizing: border-box;
 }
 
+/* Titres */
 h1, h2 {
     text-align: center;
     color: #333333;
 }
 
+/* --------- Formulaire --------- */
 form {
     display: flex;
     flex-direction: column;
@@ -29,10 +44,10 @@ form {
     margin-bottom: 20px;
 }
 
-/* Champs texte et liste */
 form input[type="text"], 
+form input[type="email"], 
 form select {
-    max-width: 300px;
+    max-width: 600px;
     width: 100%;
     margin: 0 auto;
     display: block;
@@ -47,7 +62,47 @@ form select {
     transition: all 0.3s ease;
 }
 
-/* Champ fichier */
+form input[type="text"]:focus, 
+form input[type="email"]:focus, 
+form select:focus {
+    border-color: #004080;
+    box-shadow: 0 0 6px rgba(0, 64, 128, 0.3);
+    outline: none;
+}
+
+form input[type="text"]:hover, 
+form input[type="email"]:hover, 
+form select:hover {
+    border-color: #888;
+}
+
+form textarea {
+    max-width: 600px;
+    width: 100%;
+    margin: 0 auto;
+    display: block;
+    height: 200px;
+    padding: 10px 15px;
+    font-size: 1em;
+    box-sizing: border-box;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    background-color: #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    resize: vertical;
+}
+
+form textarea:focus {
+    border-color: #004080;
+    box-shadow: 0 0 6px rgba(0, 64, 128, 0.3);
+    outline: none;
+}
+
+form textarea:hover {
+    border-color: #888;
+}
+
 form input[type="file"] {
     max-width: 300px;
     width: 100%;
@@ -62,7 +117,6 @@ form input[type="file"] {
     padding: 0;
 }
 
-/* Style du bouton "Choisir un fichier" */
 form input[type="file"]::-webkit-file-upload-button {
     height: 100%;
     padding: 0 15px;
@@ -79,20 +133,6 @@ form input[type="file"]::-webkit-file-upload-button:hover {
     background-color: #00264d;
 }
 
-/* Focus et hover des champs texte/liste */
-form input[type="text"]:focus, 
-form select:focus {
-    border-color: #004080;
-    box-shadow: 0 0 6px rgba(0, 64, 128, 0.3);
-    outline: none;
-}
-
-form input[type="text"]:hover, 
-form select:hover {
-    border-color: #888;
-}
-
-/* Bouton général */
 form button {
     max-width: 300px;
     width: 100%;
@@ -162,15 +202,30 @@ table tr:hover {
     background-color: #e6f0ff;
 }
 
-/* Footer */
+/* --------- Footer --------- */
 footer {
-    text-align: center;
     margin-top: 20px;
+    text-align: center;
     font-size: 0.9em;
-    color: #666666;
+    background-color: #f8f9fa;
+    padding: 10px 0;
+    border-top: 1px solid #ddd;
 }
 
-/* Responsive */
+footer .contact-link {
+    display: inline-block;
+    margin-top: 10px;
+    color: #004080;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s;
+}
+
+footer .contact-link:hover {
+    color: #00264d;
+}
+
+/* --------- Responsive --------- */
 @media screen and (max-width: 600px) {
     table, thead, tbody, th, td, tr {
         display: block;
@@ -192,14 +247,13 @@ footer {
     }
 }
 
-/* Leaflet map */
+/* --------- Leaflet map --------- */
 #map {
     height: 400px;
     width: 100%;
     margin-bottom: 30px;
 }
 
-/* Waypoints */
 .leaflet-marker-icon {
     background-color: #004080;
     border-radius: 50%;
@@ -209,7 +263,7 @@ footer {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 }
 
-/* Switch button */
+/* --------- Switch button --------- */
 .switch {
     position: relative;
     display: inline-block;
@@ -256,14 +310,9 @@ input:checked + .slider:before {
     transform: translateX(14px);
 }
 
-/* --------- Styles spécifiques pour l'AIDE --------- */
+/* --------- Aide --------- */
 .help-content {
-    max-width: 800px;
-    margin: 2rem auto;
-    padding: 2rem;
-    background: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    border: none;
     text-align: left;
 }
 
@@ -311,14 +360,7 @@ input:checked + .slider:before {
     background-color: #00264d;
 }
 
-.help-content footer {
-    margin-top: 2rem;
-    text-align: center;
-    font-size: 0.9em;
-    color: #666;
-}
-
-/* Style discret pour le bouton Help */
+/* --------- Bouton Help --------- */
 .help-button {
     background-color: #e0e7ff;
     color: #004080;

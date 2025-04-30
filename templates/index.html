@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Olex2RTZ{% endblock %}
+
+{% block content %}
+        <i class="fa-solid fa-route" style="font-size: 50px; color: #004080; margin-bottom: 20px;"></i>
+        <h1>Convert an Olex file to RTZ</h1>
+        <p>Upload an <strong>olexplot.gz</strong> file to analyze:</p>
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" accept=".gz" required>
+            <button type="submit">Analyze the file</button>
+        </form>
+        <a href="/help" class="help-button"><i class="fa-solid fa-circle-info"></i> Help</a>
+{% endblock %}

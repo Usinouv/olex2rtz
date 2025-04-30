@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Help - Olex2RTZ{% endblock %}
+
+{% block content %}
+    <div class="help-content">
+        <h1>Help - Olex2RTZ</h1>
+        <h2>Exporting Routes from Olex</h2>
+        <ol>
+            <li>Click on <strong>Settings</strong> then <strong>Save data to storage device</strong>.</li>
+        </ol>
+        <img src="/static/images/settings.jpg" alt="Settings - Save data to storage device">
+        <p>The <strong>Select device to save to</strong> window should open.</p>
+        <ol start="2">
+            <li>Click on the device you want to save to.</li>
+        </ol>
+        <img src="/static/images/select_device.jpg" alt="Select device to save to">
+        <p>The file browser should open.</p>
+        <p><strong>Note:</strong> Olex requires the device to be formatted in <strong>FAT32</strong>.</p>
+        <ol start="3">
+            <li>Navigate to the backup directory, then click on <strong>All plotter data</strong>.</li>
+            <li>Click <strong>Save</strong>.</li>
+        </ol>
+        <img src="/static/images/save.jpg" alt="Generic Flash Disk - Save">
+        <hr style="margin: 2rem 0;">
+        <h2>Using Olex2RTZ</h2>
+        <ol>
+            <li>Go to the main page of the website.</li>
+            <li>Upload your <strong>olexplot.gz</strong> file by clicking on <strong>Analyze the file</strong>.</li>
+            <li>After upload, you will see all routes and waypoints extracted from your file.</li>
+            <li>Select a route from the dropdown menu to preview it on the map.</li>
+            <li>If needed, you can rename the route before exporting.</li>
+            <li>Click on <strong>Convert</strong> to download the route in <strong>RTZ format</strong>.</li>
+        </ol>
+        <p><strong>Note:</strong> The system automatically detects waypoints and organizes them correctly into a route.</p>
+        <p>If you encounter any issues, please <a href="/contact" class="contact-link">Contact Us</a>.</p>
+        <div style="text-align: center;">
+            <a href="/" class="button">Back to Home</a>
+        </div>
+    </div>
+{% endblock %}
