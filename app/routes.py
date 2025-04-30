@@ -12,6 +12,10 @@ main = Blueprint('main', __name__)
 def index():
     return render_template("index.html")
 
+@main.route("/help")
+def help():
+    return render_template("help.html")
+
 @main.route("/upload", methods=["POST"])
 def upload():
     file = request.files.get("file")
