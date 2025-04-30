@@ -1,5 +1,5 @@
 # Image légère Python avec Alpine
-FROM python:3.11-alpine
+FROM python:alpine
 
 # Définir le répertoire de travail
 WORKDIR /app
