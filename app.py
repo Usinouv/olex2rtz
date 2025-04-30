@@ -5,14 +5,14 @@ import gzip
 import json
 import logging
 from logging.handlers import RotatingFileHandler
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 # Load environment variables from .env
-load_dotenv()
+load_dotenv(find_dotenv(), override=True)
 
 # Flask app setup
 app = Flask(__name__)
@@ -204,7 +204,7 @@ def contact():
                 with open(log_file_path, "r") as log_file:
                     for line in log_file:
                         recent_logs.append(line.strip())
-                recent_logs = recent_logs[-50:]
+                recent_logs = recent_logs[-25:]
 
             logs_text = "\n".join(recent_logs)
 
