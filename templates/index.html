@@ -2,8 +2,9 @@
 
 {% block title %}Olex2RTZ{% endblock %}
 
+{% block title_content %}Convert an Olex file to RTZ{% endblock %}
+
 {% block content %}
-        <h1>Convert an Olex file to RTZ</h1>
         <p>Upload an <strong>olexplot.gz</strong> file to analyze:</p>
         <form action="/upload" method="post" enctype="multipart/form-data">
             <input type="file" name="file" accept=".gz" required>

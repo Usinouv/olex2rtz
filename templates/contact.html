@@ -2,20 +2,9 @@
 
 {% block title %}Olex2RTZ | Contact{% endblock %}
 
-{% block content %}
-<h1>Contact Us</h1>
-<p>If you have suggestions or found a bug, please let us know!</p>
+{% block title_content %}Contact Us{% endblock %}
 
-<!-- Messages flashés -->
-{% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        <div class="flash-messages">
-            {% for category, message in messages %}
-                <div class="flash-message {{ category }}">{{ message }}</div>
-            {% endfor %}
-        </div>
-    {% endif %}
-{% endwith %}
+{% block content %}
 
 <!-- Formulaire -->
 <form action="/contact" method="POST">

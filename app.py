@@ -19,11 +19,12 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "default_dev_secret_JQ$5xWp5")
 app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024  # 8 MB upload limit
 
-# Basic log configuration with rotation
+# Logging configuration
 log_handler = RotatingFileHandler("app.log", maxBytes=5 * 1024 * 1024, backupCount=3)
 log_handler.setLevel(logging.INFO)
 log_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
 logging.basicConfig(level=logging.INFO, handlers=[log_handler, logging.StreamHandler()])
+
 
 def minutes_to_degrees(minutes):
     return float(minutes) / 60.0
@@ -37,22 +38,27 @@ def is_float(value):
 
 @app.errorhandler(413)
 def request_entity_too_large(error):
-    return "File too large. Maximum allowed size is 8MB.", 413
+    flash("File too large. Maximum allowed size is 8MB.", "error")
+    return redirect(url_for("index"))
+
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
+
 @app.route("/help")
 def help():
     return render_template("help.html")
+
 
 @app.route("/upload", methods=["POST"])
 def upload():
     file = request.files.get("file")
     if not file:
         logging.error("No file uploaded.")
-        return "No file uploaded.", 400
+        flash("No file uploaded.", "error")
+        return redirect(url_for("index"))
 
     logging.info("File received for processing.")
     try:
@@ -61,7 +67,8 @@ def upload():
         logging.debug("Gzip file successfully decompressed.")
     except Exception as e:
         logging.error(f"Error during file decompression: {e}")
-        return "Error during file decompression.", 500
+        flash("Error during file decompression.", "error")
+        return redirect(url_for("index"))
 
     routes = []
     unamed_routes = 1
@@ -109,7 +116,8 @@ def upload():
 
     if not routes:
         logging.warning("No valid routes found.")
-        return "No valid routes found in the uploaded file.", 400
+        flash("No valid routes found in the uploaded file.", "warning")
+        return redirect(url_for("index"))
 
     for r in routes:
         for wp in r["waypoints"]:
@@ -123,7 +131,8 @@ def upload():
             wp["lon_display"] = f"{lon_deg:03d}° {lon_min:06.3f}' {lon_dir}"
 
     session["routes"] = json.dumps(routes)
-    logging.info(f"{len(routes)} valid routes stored.")
+    logging.info(f"{len(routes)} valid routes stored in session.")
+    flash(f"{len(routes)} route(s) successfully imported.", "success")
 
     routes_js = {
         r["route_name"]: [
@@ -133,24 +142,30 @@ def upload():
 
     return render_template("routes.html", routes=routes, routes_js=routes_js)
 
+
 @app.route("/convert", methods=["POST"])
 def convert():
     route_name = request.form.get("route")
     new_name = request.form.get("new_name", "").strip()
+
     if not route_name:
         logging.error("No route name provided.")
-        return "No route selected.", 400
+        flash("No route selected.", "error")
+        return redirect(url_for("index"))
 
     routes_json = session.get("routes")
     if not routes_json:
         logging.error("No routes found in session.")
-        return "No routes found.", 400
+        flash("No routes available for conversion. Please upload a file first.", "error")
+        return redirect(url_for("index"))
 
     stored_routes = json.loads(routes_json)
     selected_route = next((r for r in stored_routes if r["route_name"] == route_name), None)
+
     if not selected_route:
         logging.error(f"Route not found: {route_name}")
-        return "Route not found.", 404
+        flash("Selected route not found.", "error")
+        return redirect(url_for("index"))
 
     route_name_to_use = new_name if new_name else selected_route["route_name"]
 
@@ -174,12 +189,14 @@ def convert():
     tree.write(xml_data, encoding="utf-8", xml_declaration=True)
     xml_data.seek(0)
 
+    logging.info(f"Route '{route_name_to_use}' converted to RTZ format and ready for download.")
     return send_file(
         xml_data,
         as_attachment=True,
         download_name=f"{route_name_to_use}.rtz",
         mimetype="application/xml",
     )
+
 
 @app.route("/contact", methods=["GET", "POST"])
 def contact():
@@ -191,6 +208,7 @@ def contact():
 
         if not name or not email or not subject or not message:
             flash("All fields are required.", "error")
+            logging.warning("Form submitted with missing fields.")
             return redirect(url_for("contact"))
 
         sender_email = os.getenv("SENDER_EMAIL")
@@ -202,11 +220,9 @@ def contact():
             recent_logs = []
             if os.path.exists(log_file_path):
                 with open(log_file_path, "r") as log_file:
-                    for line in log_file:
-                        recent_logs.append(line.strip())
-                recent_logs = recent_logs[-25:]
+                    recent_logs = log_file.readlines()[-25:]
 
-            logs_text = "\n".join(recent_logs)
+            logs_text = "\n".join(line.strip() for line in recent_logs)
 
             msg = MIMEMultipart()
             msg["From"] = sender_email
@@ -220,7 +236,7 @@ def contact():
             Message :
             {message}
 
-            --- Logs r\u00e9cents ---
+            --- Logs récents ---
             {logs_text}
             """
             msg.attach(MIMEText(body, "plain"))
@@ -234,12 +250,11 @@ def contact():
             smtp_port = int(smtp_port)
 
             with smtplib.SMTP(smtp_server, smtp_port) as server:
-                logging.info("Connecting to SMTP server...")
-                server.connect(smtp_server, smtp_port)
+                logging.debug("Connecting to SMTP server...")
                 server.starttls()
-                logging.info("Starting TLS...")
+                logging.debug("Starting TLS...")
                 server.login(sender_email, password)
-                logging.info("Logged in to SMTP server.")
+                logging.debug("Logged in to SMTP server.")
                 server.sendmail(sender_email, receiver_email, msg.as_string())
                 logging.info("Email sent successfully.")
 
@@ -252,6 +267,7 @@ def contact():
             return redirect(url_for("contact"))
 
     return render_template("contact.html")
+
 
 if __name__ == "__main__":
     app.run(debug=True)

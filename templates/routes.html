@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Routes - Olex2RTZ{% endblock %}
+{% block title %}Olex2RTZ | Routes{% endblock %}
+
+{% block title_content %}Routes & Waypoints{% endblock %}
 
 {% block content %}
-<h1>Routes and Waypoints</h1>
-
 <form method="post" action="/convert">
     <label for="route">Choose a route to convert:</label>
     <select name="route" id="route">
