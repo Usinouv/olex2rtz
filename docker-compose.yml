@@ -2,8 +2,8 @@ services:
   olex2rtz:
     build: .
     container_name: olex2rtz
-    environment:
-      - FLASK_ENV=production
+    env_file:
+      - .env
     labels:
      - "traefik.enable=true"
      - "traefik.http.routers.olex2rtz.rule=Host(`olex2rtz.aldh.eu`)"
@@ -13,7 +13,7 @@ services:
     networks:
       - web
     volumes:
-      - ./app.log:/app/app.log  # Mount the log file to the host system
+      - ./app.log:/app/app.log
     restart: unless-stopped
 
 networks:
