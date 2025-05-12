@@ -11,7 +11,9 @@
 <body>
     <div class="page-wrapper">
         <div class="container">
+          <a href="{{ url_for('main.index') }}" title="Back to home">
             <i class="fa-solid fa-route" style="font-size: 50px; color: #004080; margin-bottom: 20px;"></i>
+          </a>
 
             <!-- Title shown on every page -->
             <h1>{% block title_content %}{% endblock %}</h1>
