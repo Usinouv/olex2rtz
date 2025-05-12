@@ -1,132 +1,108 @@
-# 📍 OlexPlot.gz ➔ RTZ Converter
+# 🧭 Olex2RTZ – Convertisseur de routes Olex vers RTZ 1.0
 
-Ce projet est une application web simple utilisant **Flask** pour convertir des fichiers `olexplot.gz` en fichiers **RTZ** conformes à la norme RTZ 1.0.
-
----
-
-## 🔥 Fonctionnalités
-
-- Upload d'un fichier `olexplot.gz`
-- Décompression et lecture du contenu
-- Extraction **seulement** des routes contenant `Plottsett 8`
-- Choix de la route à convertir s'il y en a plusieurs
-- Conversion des waypoints (min latitude/longitude ➔ degrés décimaux)
-- Génération d'un fichier **RTZ** propre
-- Téléchargement immédiat du fichier `.rtz`
+**Olex2RTZ** est une application web légère développée avec Flask, permettant de convertir des fichiers de routes `olexplot.gz` générés par le logiciel Olex en fichiers RTZ conformes à la norme RTZ 1.0, utilisée dans la navigation maritime.
 
 ---
 
-## 🚀 Installation
+## 🚀 Fonctionnalités principales
 
-### 1. Clone du projet
+- **Téléversement** d’un fichier `olexplot.gz` via une interface web simple.  
+- **Extraction** et **conversion** automatique des routes Olex vers le format RTZ 1.0.
+- **Affichage** des routes sur une cartes. 
+- **Téléchargement** du fichier `.rtz` généré.
+
+---
+
+## 🛠️ Installation locale
+
+### Prérequis
+
+- Python 3.7 ou version ultérieure  
+- pip  
+- Git
+
+### Étapes
+
+1. **Cloner le dépôt**
+   ```bash
+   git clone https://github.com/Usinouv/olex2rtz.git
+   cd olex2rtz
+   ```
+
+2. **Créer et activer un environnement virtuel**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # Sous Windows : venv\Scripts\activate
+   ```
+
+3. **Installer les dépendances**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Lancer l'application**
+   ```bash
+   python app.py
+   ```
+
+   L'application sera accessible à l'adresse [http://localhost:5000](http://localhost:5000).
+
+---
+
+## ☁️ Déploiement avec Docker Compose
+
+Le projet inclut un fichier `docker-compose.yml` pour faciliter le déploiement de l'application via Docker Compose.
+
+### 1. Cloner le dépôt
 
 ```bash
-git clone git@github.com:Usinouv/olex2rtz.git
+git clone https://github.com/Usinouv/olex2rtz.git
 cd olex2rtz
 ```
 
-### 2. Création et activation d'un environnement virtuel
+### 2. Construire et lancer l’application
+
+Lance la commande suivante pour **construire l’image** localement à partir du `Dockerfile` et **démarrer le service** :
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate   # (Linux/Mac)
-venv\Scripts\activate      # (Windows)
+docker-compose up -d --build
 ```
 
-### 3. Installation des dépendances
+Cela va :
+- construire l’image Docker à partir du code source,
+- créer et démarrer le conteneur,
+- exposer le service sur le port `5000` (accessible sur http://localhost:5000 ou depuis l’IP du serveur).
+
+### 3. Arrêter et supprimer les conteneurs
 
 ```bash
-pip install -r requirements.txt
+docker-compose down
 ```
 
 ---
 
-## 📄 Fichier `requirements.txt`
-
-Contenu :
-
-```
-Flask
-```
-
----
-
-## ⚙️ Utilisation
-
-### 1. Lancer l'application Flask
-
-```bash
-python app.py
-```
-
-### 2. Accéder à l'interface web
-
-Ouvre ton navigateur à l'adresse :
-
-```
-http://127.0.0.1:5000/
-```
-
-### 3. Utilisation
-
-- Uploade ton fichier `.olexplot.gz`
-- Sélectionne la route à convertir
-- Télécharge ton fichier `.rtz`
-
----
-
-## 🐳 Utilisation avec Docker
-
-### 1. Construire l'image Docker
-
-Assurez-vous d'avoir Docker installé sur votre machine. Ensuite, exécutez la commande suivante pour construire l'image Docker :
-
-```bash
-docker build -t olex2rtz .
-```
-
-### 2. Lancer le conteneur
-
-Pour exécuter l'application dans un conteneur Docker, utilisez la commande suivante :
-
-```bash
-docker run -p 5000:5000 olex2rtz
-```
-
-L'application sera accessible à l'adresse [http://localhost:5000](http://localhost:5000).
-
-### 3. Utilisation avec `docker-compose`
-
-Si vous préférez utiliser `docker-compose`, exécutez simplement :
-
-```bash
-docker compose up --build
-```
-
-Cela construira l'image et lancera le conteneur. L'application sera également accessible à [http://localhost:5000](http://localhost:5000).
-
----
-
-## ✏️ Notes techniques
-
-- Seules les routes avec **Plottsett 8** sont prises en compte
-- Les fichiers `.gz` sont lus sans avoir besoin d'être manuellement décompressés
-- Si plusieurs routes valides sont présentes, l'utilisateur doit choisir
-- RTZ généré conforme sans balises inutiles (`extensions`, `schedules` supprimés)
-
----
-
-## 🛠️ Structure du projet
+## 📁 Structure du projet
 
 ```
 olex2rtz/
-│
-├── app.py             # Application Flask principale
-├── index.html         # Formulaire web
-├── requirements.txt   # Dépendances Python
-├── Dockerfile         # Fichier pour construire l'image Docker
-├── docker-compose.yml # Fichier pour gérer les conteneurs avec Docker Compose
-├── .dockerignore      # Fichiers ignorés lors de la construction Docker
-├── README.md          # Ce fichier
-└── venv/              # Environnement virtuel (non versionné)
+├── static/               # Fichiers statiques (CSS, JS, images)
+├── templates/            # Templates HTML
+├── app.py                # Application Flask principale
+├── requirements.txt      # Dépendances Python
+├── Dockerfile            # Image Docker de l'application
+├── docker-compose.yml    # Déploiement simplifié avec Docker Compose
+├── README.md             # Documentation du projet
+└── LICENSE               # Licence MIT
 ```
+
+---
+
+## 📄 Licence
+
+Ce projet est sous licence [MIT](LICENSE).
+
+---
+
+## 🤝 Contribuer
+
+Les contributions sont les bienvenues ! N'hésitez pas à proposer des améliorations via issues ou pull requests.
