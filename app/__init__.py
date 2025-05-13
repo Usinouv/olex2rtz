@@ -27,4 +27,11 @@ def create_app():
     from .routes import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
+    # Nettoyage des fichiers de session anciens
+    try:
+        from .cleanup import cleanup_old_sessions
+        cleanup_old_sessions()
+    except Exception as e:
+        app.logger.warning(f"Échec du nettoyage des sessions : {e}")
+
     return app
