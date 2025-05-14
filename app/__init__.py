@@ -18,12 +18,19 @@ def create_app():
     app.config["SESSION_PERMANENT"] = False
     Session(app)  # <-- Initialisation de Flask-Session
 
-    # Logging
+    # Logging : fichier + stdout (docker logs / Dozzle)
     log_handler = RotatingFileHandler("app.log", maxBytes=5 * 1024 * 1024, backupCount=3)
-    log_handler.setLevel(logging.INFO)
     log_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-    logging.basicConfig(level=logging.INFO, handlers=[log_handler, logging.StreamHandler()])
 
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+
+    logger = logging.getLogger()  # Logger racine
+    logger.setLevel(logging.INFO)
+    logger.addHandler(log_handler)
+    logger.addHandler(stream_handler)
+    logger.info("Logger configuré avec succès.")
+    
     from .routes import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
