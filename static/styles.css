@@ -458,3 +458,120 @@ input:checked + .slider:before {
         transform: translateY(-10px);
     }
 }
+/* Styles pour les boutons primaire et secondaire */
+form button.primary {
+    background-color: #004080;
+    color: white;
+    border: 2px solid #004080;
+}
+
+form button.primary:hover {
+    background-color: #00264d;
+    border-color: #00264d;
+}
+
+form button.secondary {
+    background-color: #e0e7ff;
+    color: #004080;
+    border: 2px solid #004080;
+}
+
+form button.secondary:hover {
+    background-color: #c0cfff;
+    color: #00264d;
+    border-color: #00264d;
+}
+/* --------- Split Button --------- */
+.split-button-container {
+    display: flex;
+    justify-content: center; /* Center the button group */
+    margin-top: 20px;
+}
+
+.split-button-group { /* Add a wrapper for the actual button parts */
+    display: inline-flex;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px; /* Keep this for the shadow, but children will define the shape */
+    width: 100%;
+    max-width: 300px; /* Match other form buttons */
+    /* overflow: hidden; <-- This was hiding the dropdown menu */
+}
+
+/* Reset general button styles ONLY for main and arrow buttons */
+.split-button-main,
+.split-button-arrow {
+    margin: 0 !important;
+    width: auto;
+    max-width: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+.split-button-main:hover,
+.split-button-arrow:hover {
+    box-shadow: none;
+}
+
+.split-button-main {
+    flex-grow: 1; /* Allow the main button to take up available space */
+    text-align: center;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+}
+
+.split-button-dropdown {
+    position: relative;
+    display: flex;
+}
+
+.split-button-arrow {
+    background-color: #004080;
+    color: white;
+    border: none;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    padding: 0 12px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    border-left: 1px solid #0059b3;
+    height: 45px;
+    font-size: 0.8em;
+}
+
+.split-button-arrow:hover {
+    background-color: #00264d;
+}
+
+.split-button-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 5px); /* Position below the button with a small gap */
+    right: 0;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    z-index: 1000;
+    padding: 5px;
+    min-width: 150px;
+}
+
+.split-button-menu.open {
+    display: block;
+}
+
+.split-button-menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none !important; /* Ensure no background from other rules */
+    border: none !important;
+    padding: 10px 15px;
+    color: #333 !important;
+    cursor: pointer;
+    border-radius: 5px;
+    font-weight: normal;
+}
+
+.split-button-menu button:hover {
+    background-color: #f0f0f0 !important;
+}

@@ -25,7 +25,27 @@
         <input type="text" name="new_name" id="new_name" placeholder="Enter new route name">
     </div>
 
-    <button type="submit">Convert</button>
+    <div class="split-button-container">
+        <div class="split-button-group">
+            {% if source_format == 'gz' %}
+                <button type="submit" formaction="{{ url_for('main.convert') }}" class="split-button-main">Convert to RTZ</button>
+                <div class="split-button-dropdown">
+                    <button type="button" class="split-button-arrow" aria-haspopup="true" aria-expanded="false">&#9662;</button>
+                    <div class="split-button-menu">
+                        <button type="submit" formaction="{{ url_for('main.convert_to_gpx') }}">Convert to GPX</button>
+                    </div>
+                </div>
+            {% else %}
+                <button type="submit" formaction="{{ url_for('main.convert_to_gpx') }}" class="split-button-main">Convert to GPX</button>
+                <div class="split-button-dropdown">
+                    <button type="button" class="split-button-arrow" aria-haspopup="true" aria-expanded="false">&#9662;</button>
+                    <div class="split-button-menu">
+                        <button type="submit" formaction="{{ url_for('main.convert') }}">Convert to RTZ</button>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
 </form>
 
 <div id="map" style="height: 500px; margin: 30px auto; max-width: 100%; background: #f0f0f0;"></div>
@@ -68,6 +88,7 @@
     });
 
     window.addEventListener('load', () => {
+        // Map initialization
         setTimeout(() => {
             console.log("Initializing map...");
             map = L.map('map').setView([0, 0], 2);
@@ -89,6 +110,27 @@
             const initialRoute = document.getElementById('route').value;
             updateMap(initialRoute);
         }, 0);
+
+        // Split button logic
+        const dropdown = document.querySelector('.split-button-dropdown');
+        if (dropdown) {
+            const arrow = dropdown.querySelector('.split-button-arrow');
+            const menu = dropdown.querySelector('.split-button-menu');
+
+            arrow.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const isOpening = menu.style.display === 'none' || menu.style.display === '';
+                menu.style.display = isOpening ? 'block' : 'none';
+                arrow.setAttribute('aria-expanded', isOpening);
+            });
+
+            window.addEventListener('click', (event) => {
+                if (!dropdown.contains(event.target)) {
+                    menu.style.display = 'none';
+                    arrow.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
     });
 
     function updateMap(routeName) {
@@ -123,5 +165,6 @@
     document.getElementById('toggle_rename').addEventListener('change', function () {
         document.getElementById('rename_field').style.display = this.checked ? 'block' : 'none';
     });
+
 </script>
 {% endblock %}

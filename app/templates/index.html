@@ -2,12 +2,12 @@
 
 {% block title %}Olex2RTZ{% endblock %}
 
-{% block title_content %}Convert an Olex file to RTZ{% endblock %}
+{% block title_content %}Convert routes{% endblock %}
 
 {% block content %}
-        <p>Upload an <strong>olexplot.gz</strong> file to analyze:</p>
+        <p>Upload an <strong>olexplot.gz</strong> or <strong>.rtz</strong> file to analyze:</p>
         <form action="/upload" method="post" enctype="multipart/form-data">
-            <input type="file" name="file" accept=".gz" required>
+            <input type="file" name="file" accept=".gz,.rtz" required>
             <button type="submit">Analyze the file</button>
         </form>
         <a href="/help" class="help-button"><i class="fa-solid fa-circle-info"></i> Help</a>

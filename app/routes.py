@@ -1,10 +1,11 @@
-from flask import Blueprint, render_template, request, redirect, flash, url_for, session, send_file
+from flask import Blueprint, render_template, request, redirect, flash, url_for, session, send_file, current_app
 import json
 import gzip
 import io
+import json
 import xml.etree.ElementTree as ET
-from .parser import parse_routes_from_lines
-from .utils import minutes_to_degrees
+from . import converter_service
+from .exceptions import Olex2RtzError
 
 main = Blueprint('main', __name__)
 
@@ -24,28 +25,17 @@ def upload():
         return redirect(url_for("main.index"))
 
     try:
-        with gzip.open(file, "rt", encoding="utf-8", errors="ignore") as f:
-            lines = f.readlines()
-    except Exception:
-        flash("Error during file decompression.", "error")
+        current_app.logger.info(f"Processing uploaded file: {file.filename}")
+        routes = converter_service.process_uploaded_file(file)
+        current_app.logger.info(f"Successfully processed {file.filename}, found {len(routes)} routes.")
+    except Olex2RtzError as e:
+        current_app.logger.warning(f"A known error occurred during upload of {file.filename}: {e}")
+        flash(str(e), "error")
         return redirect(url_for("main.index"))
-
-    routes = parse_routes_from_lines(lines)
-
-    if not routes:
-        flash("No valid routes found in the uploaded file.", "warning")
+    except Exception as e:
+        current_app.logger.error(f"An unexpected error occurred during upload of {file.filename}: {e}", exc_info=True)
+        flash("An unexpected internal error occurred. Please try again later.", "error")
         return redirect(url_for("main.index"))
-
-    for r in routes:
-        for wp in r["waypoints"]:
-            lat_deg = abs(int(wp["lat"]))
-            lat_min = (abs(wp["lat"]) - lat_deg) * 60
-            lon_deg = abs(int(wp["lon"]))
-            lon_min = (abs(wp["lon"]) - lon_deg) * 60
-            lat_dir = "N" if wp["lat"] >= 0 else "S"
-            lon_dir = "E" if wp["lon"] >= 0 else "W"
-            wp["lat_display"] = f"{lat_deg:02d}° {lat_min:06.3f}' {lat_dir}"
-            wp["lon_display"] = f"{lon_deg:03d}° {lon_min:06.3f}' {lon_dir}"
 
     session["routes"] = json.dumps(routes)
     flash(f"{len(routes)} route(s) successfully imported.", "success")
@@ -56,7 +46,9 @@ def upload():
         ] for r in routes
     }
 
-    return render_template("routes.html", routes=routes, routes_js=routes_js)
+    source_format = "gz" if file.filename.endswith(".gz") else "rtz"
+
+    return render_template("routes.html", routes=routes, routes_js=routes_js, source_format=source_format)
 
 
 @main.route("/contact", methods=["GET", "POST"])
@@ -83,7 +75,7 @@ def contact():
 @main.route("/convert", methods=["POST"])
 def convert():
     route_name = request.form.get("route")
-    new_name = request.form.get("new_name", "").strip()
+    new_name = request.form.get("new_name", "")
 
     if not route_name:
         flash("No route selected.", "error")
@@ -93,39 +85,50 @@ def convert():
     if not routes_json:
         flash("No routes available for conversion. Please upload a file first.", "error")
         return redirect(url_for("main.index"))
-
+    
     stored_routes = json.loads(routes_json)
-    selected_route = next((r for r in stored_routes if r["route_name"] == route_name), None)
 
-    if not selected_route:
-        flash("Selected route not found.", "error")
+    try:
+        download_name, xml_data = converter_service.generate_rtz_file(
+            stored_routes, route_name, new_name
+        )
+    except Olex2RtzError as e:
+        flash(str(e), "error")
         return redirect(url_for("main.index"))
-
-    route_name_to_use = new_name if new_name else selected_route["route_name"]
-
-    root = ET.Element("route", {
-        "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
-        "xmlns:xsd": "http://www.w3.org/2001/XMLSchema",
-        "xmlns": "http://www.cirm.org/RTZ/1/0",
-        "version": "1.0",
-    })
-    ET.SubElement(root, "routeInfo", {"routeName": route_name_to_use})
-    waypoints_el = ET.SubElement(root, "waypoints")
-    ET.SubElement(waypoints_el, "defaultWaypoint", {"radius": "0.30"})
-
-    for idx, waypoint in enumerate(selected_route["waypoints"], start=1):
-        wp = ET.SubElement(waypoints_el, "waypoint", {"id": str(idx), "name": waypoint["name"] or ""})
-        ET.SubElement(wp, "position", {"lat": f"{waypoint['lat']:.8f}", "lon": f"{waypoint['lon']:.8f}"})
-        ET.SubElement(wp, "leg", {"legInfo": ""})
-
-    xml_data = io.BytesIO()
-    tree = ET.ElementTree(root)
-    tree.write(xml_data, encoding="utf-8", xml_declaration=True)
-    xml_data.seek(0)
 
     return send_file(
         xml_data,
         as_attachment=True,
-        download_name=f"{route_name_to_use}.rtz",
+        download_name=download_name,
         mimetype="application/xml",
+    )
+@main.route("/convert-to-gpx", methods=["POST"])
+def convert_to_gpx():
+    route_name = request.form.get("route")
+    new_name = request.form.get("new_name", "")
+
+    if not route_name:
+        flash("No route selected.", "error")
+        return redirect(url_for("main.index"))
+
+    routes_json = session.get("routes")
+    if not routes_json:
+        flash("No routes available for conversion. Please upload a file first.", "error")
+        return redirect(url_for("main.index"))
+    
+    stored_routes = json.loads(routes_json)
+
+    try:
+        download_name, xml_data = converter_service.generate_gpx_file(
+            stored_routes, route_name, new_name
+        )
+    except Olex2RtzError as e:
+        flash(str(e), "error")
+        return redirect(url_for("main.index"))
+
+    return send_file(
+        xml_data,
+        as_attachment=True,
+        download_name=download_name,
+        mimetype="application/gpx+xml",
     )
