@@ -8,8 +8,8 @@
 <form method="post" action="/convert">
     <label for="route">Choose a route to convert:</label>
     <select name="route" id="route">
-        {% for route in routes %}
-            <option value="{{ route.route_name }}">{{ route.route_name }}</option>
+        {% for route in routes | reverse %}
+            <option value="{{ route.route_name }}" data-waypoints="{{ route.waypoints | length }}">{{ route.route_name }}</option>
         {% endfor %}
     </select>
 
@@ -50,7 +50,8 @@
 
 <div id="map" style="height: 500px; margin: 30px auto; max-width: 100%; background: #f0f0f0;"></div>
 
-{% for route in routes %}
+{% for route in routes | reverse %}
+<div class="route-container" data-waypoints="{{ route.waypoints | length }}">
     <h2>{{ route.route_name }}</h2>
     <table class="waypoints-table">
         <thead>
@@ -70,11 +71,23 @@
         {% endfor %}
         </tbody>
     </table>
+</div>
 {% endfor %}
+
+{% if has_single_waypoint_routes %}
+<div class="filter-switch" style="margin: 20px 0; display: flex; align-items: center; justify-content: center;">
+    <label for="toggle_single_waypoint" style="margin-right: 10px;">Show routes with only one waypoint</label>
+    <label class="switch">
+        <input type="checkbox" id="toggle_single_waypoint">
+        <span class="slider"></span>
+    </label>
+</div>
+{% endif %}
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+    const allRoutes = {{ routes | tojson | safe }};
     const routes = {{ routes_js | tojson }};
     let map;
     let currentRoute = null;
@@ -87,51 +100,6 @@
         popupAnchor: [0, -10]
     });
 
-    window.addEventListener('load', () => {
-        // Map initialization
-        setTimeout(() => {
-            console.log("Initializing map...");
-            map = L.map('map').setView([0, 0], 2);
-            console.log("Map initialized:", map);
-
-            try {
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
-                    attribution: '&copy; <a href="https://carto.com/attributions">CartoDB</a>',
-                    maxZoom: 19
-                }).addTo(map);
-            } catch (error) {
-                console.error("CartoDB tiles failed to load. Falling back to OpenStreetMap.");
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-                    maxZoom: 19
-                }).addTo(map);
-            }
-
-            const initialRoute = document.getElementById('route').value;
-            updateMap(initialRoute);
-        }, 0);
-
-        // Split button logic
-        const dropdown = document.querySelector('.split-button-dropdown');
-        if (dropdown) {
-            const arrow = dropdown.querySelector('.split-button-arrow');
-            const menu = dropdown.querySelector('.split-button-menu');
-
-            arrow.addEventListener('click', (event) => {
-                event.stopPropagation();
-                const isOpening = menu.style.display === 'none' || menu.style.display === '';
-                menu.style.display = isOpening ? 'block' : 'none';
-                arrow.setAttribute('aria-expanded', isOpening);
-            });
-
-            window.addEventListener('click', (event) => {
-                if (!dropdown.contains(event.target)) {
-                    menu.style.display = 'none';
-                    arrow.setAttribute('aria-expanded', 'false');
-                }
-            });
-        }
-    });
 
     function updateMap(routeName) {
         if (!map) return;
@@ -164,7 +132,98 @@
 
     document.getElementById('toggle_rename').addEventListener('change', function () {
         document.getElementById('rename_field').style.display = this.checked ? 'block' : 'none';
-    });
+        });
+    
+        window.addEventListener('load', () => {
+            // Map initialization
+            setTimeout(() => {
+                console.log("Initializing map...");
+                map = L.map('map').setView([0, 0], 2);
+                console.log("Map initialized:", map);
+    
+                try {
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
+                        attribution: '&copy; <a href="https://carto.com/attributions">CartoDB</a>',
+                        maxZoom: 19
+                    }).addTo(map);
+                } catch (error) {
+                    console.error("CartoDB tiles failed to load. Falling back to OpenStreetMap.");
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                        maxZoom: 19
+                    }).addTo(map);
+                }
+    
+                const initialRoute = document.getElementById('route').value;
+                updateMap(initialRoute);
+            }, 0);
+    
+            // Split button logic
+            const dropdown = document.querySelector('.split-button-dropdown');
+            if (dropdown) {
+                const arrow = dropdown.querySelector('.split-button-arrow');
+                const menu = dropdown.querySelector('.split-button-menu');
+    
+                arrow.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    const isOpening = menu.style.display === 'none' || menu.style.display === '';
+                    menu.style.display = isOpening ? 'block' : 'none';
+                    arrow.setAttribute('aria-expanded', isOpening);
+                });
+    
+                window.addEventListener('click', (event) => {
+                    if (!dropdown.contains(event.target)) {
+                        menu.style.display = 'none';
+                        arrow.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+    
+            // Route filtering logic
+            const toggleSwitch = document.getElementById('toggle_single_waypoint');
+            const routeContainers = document.querySelectorAll('.route-container');
+    
+            function filterRoutes() {
+                const showSingle = toggleSwitch.checked;
+                const routeSelect = document.getElementById('route');
+                const currentSelectedValue = routeSelect.value;
+                let newSelectedValue = null;
 
-</script>
+                // Filtrer les conteneurs de routes
+                routeContainers.forEach(container => {
+                    const waypointCount = parseInt(container.dataset.waypoints, 10);
+                    const shouldBeVisible = waypointCount > 1 || showSingle;
+                    container.style.display = shouldBeVisible ? '' : 'none';
+                });
+
+                // Filtrer les options du select
+                Array.from(routeSelect.options).forEach(option => {
+                    const waypointCount = parseInt(option.dataset.waypoints, 10);
+                    const shouldBeVisible = waypointCount > 1 || showSingle;
+                    // Utiliser 'block' ou '' pour la visibilité peut être plus fiable que 'none'
+                    option.style.display = shouldBeVisible ? 'block' : 'none';
+                    if (shouldBeVisible && !newSelectedValue) {
+                        newSelectedValue = option.value;
+                    }
+                });
+
+                // Si l'option sélectionnée est maintenant cachée, sélectionnez la première visible
+                if (routeSelect.options[routeSelect.selectedIndex].style.display === 'none') {
+                    if (newSelectedValue) {
+                        routeSelect.value = newSelectedValue;
+                    }
+                }
+                
+                // Mettre à jour la carte si la sélection a changé
+                if (routeSelect.value !== currentSelectedValue) {
+                    updateMap(routeSelect.value);
+                }
+            }
+    
+            if (toggleSwitch) {
+                toggleSwitch.addEventListener('change', filterRoutes);
+                filterRoutes(); // Initial filter on page load
+            }
+        });
+    </script>
 {% endblock %}
