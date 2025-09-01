@@ -4,6 +4,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv, find_dotenv
 from flask_session import Session  # <-- Ajouté
+import getpass
 
 def create_app():
     load_dotenv(find_dotenv(), override=True)
@@ -34,6 +35,26 @@ def create_app():
     logger.setLevel(logging.INFO)
     logger.addHandler(log_handler)
     logger.addHandler(stream_handler)
+
+    # Debug: Log current user and file permissions
+    try:
+        import getpass
+        current_user = getpass.getuser()
+        logger.info(f"Current user: {current_user}")
+    except Exception as e:
+        logger.warning(f"Could not get current user: {e}")
+
+    log_file_path = os.path.join(os.getcwd(), "app.log")
+    if os.path.exists(log_file_path):
+        try:
+            stat_info = os.stat(log_file_path)
+            logger.info(f"app.log permissions: {oct(stat_info.st_mode)}")
+            logger.info(f"app.log owner UID: {stat_info.st_uid}, GID: {stat_info.st_gid}")
+        except Exception as e:
+            logger.warning(f"Could not get app.log permissions: {e}")
+    else:
+        logger.info("app.log does not exist yet, will be created")
+
     logger.info("Logger configuré avec succès.")
     
     from .routes import main as main_blueprint
