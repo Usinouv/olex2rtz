@@ -7,10 +7,24 @@ de conversion des données et de génération du fichier RTZ.
 """
 import gzip
 import io
+import re
 import xml.etree.ElementTree as ET
 from flask import current_app
 from .utils import minutes_to_degrees, is_float
 from .exceptions import InvalidFileError, NoRoutesFoundError
+
+def _sanitize_filename(name):
+    """Sanitize filename to prevent path traversal and invalid characters."""
+    if not name:
+        return "route"
+    # Remove or replace invalid characters
+    name = re.sub(r'[<>:"/\\|?*]', '_', name)
+    # Remove leading/trailing dots and spaces
+    name = name.strip(' .')
+    # Limit length
+    if len(name) > 100:
+        name = name[:100]
+    return name or "route"
 
 def _parse_routes_from_lines(lines):
     """Parse les lignes d'un fichier Olex et retourne les routes."""
@@ -135,7 +149,7 @@ def generate_rtz_file(stored_routes, selected_route_name, new_name=None):
     if not selected_route:
         raise NoRoutesFoundError("Selected route not found.")
 
-    route_name_to_use = new_name.strip() if new_name else selected_route["route_name"]
+    route_name_to_use = _sanitize_filename(new_name.strip() if new_name else selected_route["route_name"])
 
     root = ET.Element("route", {
         "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
@@ -170,11 +184,11 @@ def generate_gpx_file(stored_routes, selected_route_name, new_name=None):
     if not selected_route:
         raise NoRoutesFoundError("Selected route not found.")
 
-    route_name_to_use = new_name.strip() if new_name else selected_route["route_name"]
+    route_name_to_use = _sanitize_filename(new_name.strip() if new_name else selected_route["route_name"])
 
     gpx_ns = "http://www.topografix.com/GPX/1/1"
     ET.register_namespace("", gpx_ns)
-    
+
     root = ET.Element("gpx", {
         "version": "1.1",
         "creator": "Olex2RTZ",

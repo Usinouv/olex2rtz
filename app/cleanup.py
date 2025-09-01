@@ -1,6 +1,7 @@
 # cleanup.py
 import os
 import time
+import logging
 
 SESSION_DIR = "/app/.flask_session"
 MAX_AGE_SECONDS = 7 * 24 * 3600  # 7 jours
@@ -17,6 +18,6 @@ def cleanup_old_sessions():
             if age > MAX_AGE_SECONDS:
                 try:
                     os.remove(path)
-                    print(f"🧹 Supprimé : {path}")
+                    logging.info(f"Cleaned up old session file: {path}")
                 except Exception as e:
-                    print(f"Erreur suppression {path}: {e}")
+                    logging.warning(f"Failed to remove session file {path}: {e}")

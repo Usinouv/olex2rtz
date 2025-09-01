@@ -16,12 +16,22 @@ def index():
 def help():
     return render_template("help.html")
 
+@main.route("/health")
+def health():
+    return {"status": "healthy"}, 200
+
 @main.route("/upload", methods=["POST"])
 def upload():
     file = request.files.get("file")
     if not file:
         flash("No file uploaded.", "error")
         return redirect(url_for("main.index"))
+
+    # Log file size for debugging
+    file_size = len(file.read())
+    file.seek(0)  # Reset file pointer
+    current_app.logger.info(f"Uploaded file: {file.filename}, size: {file_size} bytes ({file_size / (1024*1024):.2f} MB)")
+    current_app.logger.info(f"MAX_CONTENT_LENGTH setting: {current_app.config.get('MAX_CONTENT_LENGTH', 'Not set')} bytes")
 
     try:
         current_app.logger.info(f"Processing uploaded file: {file.filename}")
@@ -36,7 +46,7 @@ def upload():
         flash("An unexpected internal error occurred. Please try again later.", "error")
         return redirect(url_for("main.index"))
 
-    session["routes"] = json.dumps(routes)
+    session["routes"] = routes
     flash(f"{len(routes)} route(s) successfully imported.", "success")
 
     routes_js = {
@@ -88,12 +98,10 @@ def _handle_conversion(generator_func, mimetype):
         flash("No route selected.", "error")
         return redirect(url_for("main.index"))
 
-    routes_json = session.get("routes")
-    if not routes_json:
+    stored_routes = session.get("routes")
+    if not stored_routes:
         flash("No routes available for conversion. Please upload a file first.", "error")
         return redirect(url_for("main.index"))
-    
-    stored_routes = json.loads(routes_json)
 
     try:
         download_name, xml_data = generator_func(

@@ -41,9 +41,9 @@
    ```
 
 4. **Lancer l'application**
-   ```bash
-   python app.py
-   ```
+    ```bash
+    python run.py
+    ```
 
    L'application sera accessible à l'adresse [http://localhost:5000](http://localhost:5000).
 
@@ -85,9 +85,17 @@ docker-compose down
 
 ```
 olex2rtz/
+├── app/                  # Application Flask
+│   ├── __init__.py       # Configuration et création de l'app
+│   ├── routes.py         # Routes et vues
+│   ├── converter_service.py # Logique de conversion
+│   ├── email_utils.py    # Utilitaires email
+│   ├── exceptions.py     # Exceptions personnalisées
+│   ├── utils.py          # Utilitaires généraux
+│   ├── cleanup.py        # Nettoyage des sessions
+│   └── templates/        # Templates HTML
 ├── static/               # Fichiers statiques (CSS, JS, images)
-├── templates/            # Templates HTML
-├── app.py                # Application Flask principale
+├── run.py                # Point d'entrée de l'application
 ├── requirements.txt      # Dépendances Python
 ├── Dockerfile            # Image Docker de l'application
 ├── docker-compose.yml    # Déploiement simplifié avec Docker Compose

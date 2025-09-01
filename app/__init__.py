@@ -9,8 +9,13 @@ def create_app():
     load_dotenv(find_dotenv(), override=True)
     
     app = Flask(__name__, static_folder="../static", template_folder="templates")
-    app.secret_key = os.getenv("SECRET_KEY", "default_dev_secret_JQ$5xWp5")
-    app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024  # 8 MB
+    secret_key = os.getenv("SECRET_KEY")
+    if not secret_key:
+        import secrets
+        secret_key = secrets.token_hex(32)
+        app.logger.warning("SECRET_KEY not set, using generated key. Set SECRET_KEY in environment for production.")
+    app.secret_key = secret_key
+    app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB
 
     # Configurer Flask-Session pour stockage sur disque
     app.config["SESSION_TYPE"] = "filesystem"
