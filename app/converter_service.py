@@ -35,15 +35,35 @@ def _parse_routes_from_lines(lines):
         line = lines[i].strip()
         if line.startswith("Rute "):
             route_name = line[5:].strip()
-            if i + 1 >= len(lines) or "Plottsett 8" not in lines[i + 1]:
+            current_app.logger.debug(f"Found route: '{route_name}'")
+            # Look for Plottsett line within next few lines
+            plottsett_found = False
+            plottsett_index = -1
+            for k in range(1, min(10, len(lines) - i)):  # Check up to 10 lines ahead
+                check_line = lines[i + k].strip()
+                if check_line.startswith("Rute "):
+                    break  # Another route starts, stop looking
+                if "Plottsett" in check_line:
+                    plottsett_found = True
+                    plottsett_index = i + k
+                    break
+
+            if not plottsett_found:
+                current_app.logger.debug(f"No Plottsett line found near route '{route_name}', skipping")
                 i += 1
                 continue
-            if route_name == "uten navn":
-                route_name = f"Unnamed Route {unamed_routes}"
-                unamed_routes += 1
+
+            # Only process routes named "uten navn" (unnamed routes)
+            if route_name != "uten navn":
+                current_app.logger.debug(f"Skipping route '{route_name}' - only processing 'uten navn' routes")
+                i += 1
+                continue
+
+            route_name = f"Unnamed Route {unamed_routes}"
+            unamed_routes += 1
 
             waypoints = []
-            j = i + 1
+            j = plottsett_index + 1  # Start parsing waypoints after Plottsett line
             while j < len(lines):
                 line_j = lines[j].strip()
                 if line_j.startswith("Rute "):
@@ -65,10 +85,17 @@ def _parse_routes_from_lines(lines):
                 j += 1
 
             if waypoints:
+                # Temporarily exclude routes with only 1 waypoint
+                if len(waypoints) <= 1:
+                    current_app.logger.debug(f"Skipping route '{route_name}' - only {len(waypoints)} waypoint(s)")
+                    i = j
+                    continue
                 routes.append({"route_name": route_name, "waypoints": waypoints})
+                current_app.logger.info(f"Parsed route '{route_name}' with {len(waypoints)} waypoints")
             i = j
         else:
             i += 1
+    current_app.logger.info(f"Total routes parsed: {len(routes)}")
     return routes
 
 def _parse_rtz_file(file_stream):
