@@ -26,15 +26,20 @@ def _sanitize_filename(name):
         name = name[:100]
     return name or "route"
 
-def _parse_routes_from_lines(lines):
+def _parse_routes_from_lines(lines, process_routes=True, process_traces=False, process_waypoints=False):
     """Parse les lignes d'un fichier Olex et retourne les routes."""
     routes = []
     unamed_routes = 1
+    trace_routes = 1
+    waypoint_routes = 1
     i = 0
     while i < len(lines):
         line = lines[i].strip()
         if line.startswith("Rute "):
             route_name = line[5:].strip()
+            # Remove "Rutetype Strek" suffix if present
+            if route_name.endswith("Rutetype Strek"):
+                route_name = route_name[:-len("Rutetype Strek")].strip()
             current_app.logger.debug(f"Found route: '{route_name}'")
             # Look for Plottsett line within next few lines
             plottsett_found = False
@@ -53,15 +58,15 @@ def _parse_routes_from_lines(lines):
                 i += 1
                 continue
 
-            # Only process routes named "uten navn" (unnamed routes)
-            if route_name != "uten navn":
-                current_app.logger.debug(f"Skipping route '{route_name}' - only processing 'uten navn' routes")
-                i += 1
-                continue
+            # Check for "Rutetype Strek" in the route block
+            rutetype_found = False
+            for k in range(1, plottsett_index - i + 1):
+                check_line = lines[i + k].strip()
+                if "Rutetype Strek" in check_line:
+                    rutetype_found = True
+                    break
 
-            route_name = f"Unnamed Route {unamed_routes}"
-            unamed_routes += 1
-
+            # Parse waypoints to determine route type
             waypoints = []
             j = plottsett_index + 1  # Start parsing waypoints after Plottsett line
             while j < len(lines):
@@ -84,12 +89,37 @@ def _parse_routes_from_lines(lines):
                     waypoints[-1]["name"] = waypoint_name
                 j += 1
 
+            # Determine route type and whether to process it
+            is_single_waypoint = len(waypoints) == 1
+            is_trace_route = "Slepestrek" in route_name
+            is_unnamed_route = route_name == "uten navn"
+
+            should_process = False
+
+            if is_single_waypoint and process_waypoints:
+                should_process = True
+                route_name = f"Waypoint {waypoint_routes}"
+                waypoint_routes += 1
+            elif is_trace_route and process_traces and rutetype_found:
+                should_process = True
+                route_name = f"Trace Route {trace_routes}"
+                trace_routes += 1
+            elif is_unnamed_route and process_routes and rutetype_found:
+                should_process = True
+                route_name = f"Unnamed Route {unamed_routes}"
+                unamed_routes += 1
+            elif not is_single_waypoint and not is_trace_route and not is_unnamed_route and process_traces and rutetype_found:
+                # Other routes when traces are enabled
+                should_process = True
+                route_name = f"Route {trace_routes}"
+                trace_routes += 1
+
+            if not should_process:
+                current_app.logger.debug(f"Skipping route '{route_name}' - not processing this type")
+                i = j
+                continue
+
             if waypoints:
-                # Temporarily exclude routes with only 1 waypoint
-                if len(waypoints) <= 1:
-                    current_app.logger.debug(f"Skipping route '{route_name}' - only {len(waypoints)} waypoint(s)")
-                    i = j
-                    continue
                 routes.append({"route_name": route_name, "waypoints": waypoints})
                 current_app.logger.info(f"Parsed route '{route_name}' with {len(waypoints)} waypoints")
             i = j
@@ -133,7 +163,7 @@ def _parse_rtz_file(file_stream):
         current_app.logger.error(f"RTZ file parsing failed for stream. Error: {e}", exc_info=True)
         raise InvalidFileError(f"Error parsing RTZ file: {e}")
 
-def process_uploaded_file(file_stream):
+def process_uploaded_file(file_stream, process_routes=True, process_traces=False, process_waypoints=False):
     """
     Traite un fichier olexplot.gz ou .rtz uploadé.
     """
@@ -142,7 +172,12 @@ def process_uploaded_file(file_stream):
         try:
             with gzip.open(file_stream, "rt", encoding="utf-8", errors="ignore") as f:
                 lines = f.readlines()
-            routes = _parse_routes_from_lines(lines)
+            routes = _parse_routes_from_lines(
+                lines,
+                process_routes=process_routes,
+                process_traces=process_traces,
+                process_waypoints=process_waypoints
+            )
         except Exception as e:
             current_app.logger.error(f"GZ file processing failed for {filename}. Error: {e}", exc_info=True)
             raise InvalidFileError(f"Error during GZ file decompression: {e}")

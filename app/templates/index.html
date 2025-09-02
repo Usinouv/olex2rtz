@@ -8,7 +8,35 @@
         <p>Upload an <strong>olexplot.gz</strong> or <strong>.rtz</strong> file to analyze:</p>
         <form action="/upload" method="post" enctype="multipart/form-data">
             <input type="file" name="file" accept=".gz,.rtz" required>
+
+            <label for="toggle_advanced" style="display: block; margin-top: 10px;">
+                <span>Advanced options</span>
+                <label class="switch">
+                    <input type="checkbox" id="toggle_advanced">
+                    <span class="slider"></span>
+                </label>
+            </label>
+
+            <div id="advanced_options" style="display: none; margin-top: 15px; padding: 15px; background-color: #f9f9f9; border-radius: 8px; border: 1px solid #ddd;">
+                <h4 style="margin-top: 0; color: #004080;">Processing Options</h4>
+                <label style="display: block; margin: 8px 0;">
+                    <input type="checkbox" name="process_routes" value="1" checked> Process routes
+                </label>
+                <label style="display: block; margin: 8px 0;">
+                    <input type="checkbox" name="process_traces" value="1"> Process traces
+                </label>
+                <label style="display: block; margin: 8px 0;">
+                    <input type="checkbox" name="process_waypoints" value="1"> Process single waypoints
+                </label>
+            </div>
+
             <button type="submit">Analyze the file</button>
         </form>
+
+        <script>
+            document.getElementById('toggle_advanced').addEventListener('change', function () {
+                document.getElementById('advanced_options').style.display = this.checked ? 'block' : 'none';
+            });
+        </script>
         <a href="/help" class="help-button"><i class="fa-solid fa-circle-info"></i> Help</a>
 {% endblock %}

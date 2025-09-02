@@ -33,9 +33,23 @@ def upload():
     current_app.logger.info(f"Uploaded file: {file.filename}, size: {file_size} bytes ({file_size / (1024*1024):.2f} MB)")
     current_app.logger.info(f"MAX_CONTENT_LENGTH setting: {current_app.config.get('MAX_CONTENT_LENGTH', 'Not set')} bytes")
 
+    # Get processing options from form
+    process_routes = request.form.get("process_routes") == "1"
+    process_traces = request.form.get("process_traces") == "1"
+    process_waypoints = request.form.get("process_waypoints") == "1"
+
+    # If no advanced options are checked, default to processing routes
+    if not any([process_routes, process_traces, process_waypoints]):
+        process_routes = True
+
     try:
         current_app.logger.info(f"Processing uploaded file: {file.filename}")
-        routes = converter_service.process_uploaded_file(file)
+        routes = converter_service.process_uploaded_file(
+            file,
+            process_routes=process_routes,
+            process_traces=process_traces,
+            process_waypoints=process_waypoints
+        )
         current_app.logger.info(f"Successfully processed {file.filename}, found {len(routes)} routes.")
     except Olex2RtzError as e:
         current_app.logger.warning(f"A known error occurred during upload of {file.filename}: {e}")
