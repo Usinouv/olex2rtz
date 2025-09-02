@@ -50,6 +50,7 @@
 
 <div id="map" style="height: 500px; margin: 30px auto; max-width: 100%; background: #f0f0f0;"></div>
 
+
 {% for route in routes | reverse %}
 <div class="route-container" data-waypoints="{{ route.waypoints | length }}">
     <h2>{{ route.route_name }}</h2>
@@ -112,6 +113,15 @@
         if (!waypoints || waypoints.length === 0) return;
 
         const latlngs = waypoints.map(wp => [wp.lat, wp.lon]);
+
+        // Determine route color based on type
+        const isTrace = routeName.toLowerCase().includes('trace');
+        const routeColor = isTrace ? '#FF6B35' : '#004080'; // Orange for traces, blue for routes
+
+        // Always show the full route line for accuracy
+        currentRoute = L.polyline(latlngs, { color: routeColor, weight: 3 }).addTo(map);
+
+        // Add markers for all waypoints
         latlngs.forEach((coords, i) => {
             const name = waypoints[i].name || "WP" + (i + 1);
             const marker = L.marker(coords, { icon: circleIcon }).addTo(map)
@@ -121,7 +131,6 @@
             currentMarkers.push(marker);
         });
 
-        currentRoute = L.polyline(latlngs, { color: '#004080' }).addTo(map);
         map.fitBounds(currentRoute.getBounds());
         map.invalidateSize();
     }
@@ -129,6 +138,7 @@
     document.getElementById('route').addEventListener('change', function () {
         updateMap(this.value);
     });
+
 
     document.getElementById('toggle_rename').addEventListener('change', function () {
         document.getElementById('rename_field').style.display = this.checked ? 'block' : 'none';

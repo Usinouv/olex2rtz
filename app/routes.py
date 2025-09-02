@@ -61,7 +61,38 @@ def upload():
         return redirect(url_for("main.index"))
 
     session["routes"] = routes
-    flash(f"{len(routes)} route(s) successfully imported.", "success")
+
+    # Categorize imported items
+    routes_count = 0
+    traces_count = 0
+    waypoints_count = 0
+
+    for route in routes:
+        route_name = route.get("route_name", "").lower()
+        waypoint_count = len(route.get("waypoints", []))
+
+        if waypoint_count == 1:
+            waypoints_count += 1
+        elif "trace" in route_name:
+            traces_count += 1
+        else:
+            routes_count += 1
+
+    # Build detailed message
+    message_parts = []
+    if routes_count > 0:
+        message_parts.append(f"{routes_count} route{'s' if routes_count != 1 else ''}")
+    if traces_count > 0:
+        message_parts.append(f"{traces_count} trace{'s' if traces_count != 1 else ''}")
+    if waypoints_count > 0:
+        message_parts.append(f"{waypoints_count} waypoint{'s' if waypoints_count != 1 else ''}")
+
+    if message_parts:
+        detailed_message = ", ".join(message_parts) + " successfully imported."
+    else:
+        detailed_message = f"{len(routes)} item{'s' if len(routes) != 1 else ''} successfully imported."
+
+    flash(detailed_message, "success")
 
     routes_js = {
         r["route_name"]: [
