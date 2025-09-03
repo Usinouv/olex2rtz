@@ -1,6 +1,32 @@
 services:
-  olex2rtz:
-    build: .
+  dev:
+    build:
+      context: .
+      args:
+        ENV_MODE: dev
+    container_name: olex2rtz-dev
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./app:/app/app
+      - ./static:/app/static
+    env_file:
+      - .env
+    labels:
+     - "traefik.enable=true"
+     - "traefik.http.routers.olex2rtz-dev.rule=Host(`dev.olex2rtz.aldh.eu`)"
+     - "traefik.http.routers.olex2rtz-dev.entrypoints=websecure"
+     - "traefik.http.routers.olex2rtz-dev.tls.certresolver=gregson"
+     - "traefik.http.services.olex2rtz-dev.loadbalancer.server.port=5000"
+    networks:
+      - web
+    restart: unless-stopped
+
+  prod:
+    build:
+      context: .
+      args:
+        ENV_MODE: prod
     container_name: olex2rtz
     env_file:
       - .env

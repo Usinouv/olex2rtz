@@ -6,6 +6,30 @@ import xml.etree.ElementTree as ET
 from . import converter_service
 from .exceptions import Olex2RtzError
 
+def _sample_waypoints(waypoints, max_count=100):
+    """Sample waypoints to limit display count while preserving first and last."""
+    if len(waypoints) <= max_count:
+        return waypoints
+
+    # Always keep first and last waypoints
+    sampled = [waypoints[0]]
+
+    # Calculate how many intermediate waypoints to sample
+    remaining_slots = max_count - 2  # -2 for first and last
+    total_intermediate = len(waypoints) - 2
+
+    if remaining_slots > 0 and total_intermediate > 0:
+        step = max(1, total_intermediate // remaining_slots)
+        for i in range(1, total_intermediate + 1, step):
+            if len(sampled) < max_count - 1:  # -1 to leave room for last
+                sampled.append(waypoints[i])
+
+    # Always add the last waypoint
+    if len(waypoints) > 1:
+        sampled.append(waypoints[-1])
+
+    return sampled
+
 main = Blueprint('main', __name__)
 
 @main.route("/")
@@ -37,6 +61,7 @@ def upload():
     process_routes = request.form.get("process_routes") == "1"
     process_traces = request.form.get("process_traces") == "1"
     process_waypoints = request.form.get("process_waypoints") == "1"
+    limit_waypoint_table = request.form.get("limit_waypoint_table") == "1"
 
     # If no advanced options are checked, default to processing routes
     if not any([process_routes, process_traces, process_waypoints]):
@@ -61,6 +86,15 @@ def upload():
         return redirect(url_for("main.index"))
 
     session["routes"] = routes
+
+    # Create display routes with waypoint sampling if enabled
+    display_routes = routes
+    if limit_waypoint_table:
+        display_routes = []
+        for route in routes:
+            display_route = route.copy()
+            display_route["waypoints"] = _sample_waypoints(route["waypoints"])
+            display_routes.append(display_route)
 
     # Categorize imported items
     routes_count = 0
@@ -106,7 +140,7 @@ def upload():
 
     return render_template(
         "routes.html",
-        routes=routes,
+        routes=display_routes,
         routes_js=routes_js,
         source_format=source_format,
         has_single_waypoint_routes=has_single_waypoint_routes

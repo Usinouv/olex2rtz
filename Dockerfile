@@ -14,6 +14,10 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 # Production stage
 FROM python:alpine
 
+# Argument pour définir l'environnement (prod ou dev)
+ARG ENV_MODE=prod
+ENV ENV_MODE=$ENV_MODE
+
 # Installer uniquement les dépendances runtime nécessaires
 RUN apk add --no-cache libffi
 
@@ -38,5 +42,5 @@ USER appuser
 # Exposer le port
 EXPOSE 5000
 
-# Démarrer avec Gunicorn
-CMD ["gunicorn", "-c", "gunicorn.conf.py", "run:app"]
+# Démarrer selon l'environnement
+CMD ["sh", "-c", "if [ \"$ENV_MODE\" = \"dev\" ]; then python run.py; else gunicorn -c gunicorn.conf.py run:app; fi"]
