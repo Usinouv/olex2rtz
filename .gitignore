@@ -59,3 +59,7 @@ cython_debug/
 
 # WorldTides cache
 cache/
+
+# Test data
+test_data/
+temp/
