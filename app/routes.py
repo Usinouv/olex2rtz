@@ -58,23 +58,11 @@ def upload():
     current_app.logger.info(f"MAX_CONTENT_LENGTH setting: {current_app.config.get('MAX_CONTENT_LENGTH', 'Not set')} bytes")
 
     # Get processing options from form
-    process_routes = request.form.get("process_routes") == "1"
-    process_traces = request.form.get("process_traces") == "1"
-    process_waypoints = request.form.get("process_waypoints") == "1"
     limit_waypoint_table = request.form.get("limit_waypoint_table") == "1"
-
-    # If no advanced options are checked, default to processing routes
-    if not any([process_routes, process_traces, process_waypoints]):
-        process_routes = True
 
     try:
         current_app.logger.info(f"Processing uploaded file: {file.filename}")
-        routes = converter_service.process_uploaded_file(
-            file,
-            process_routes=process_routes,
-            process_traces=process_traces,
-            process_waypoints=process_waypoints
-        )
+        routes = converter_service.process_uploaded_file(file)
         current_app.logger.info(f"Successfully processed {file.filename}, found {len(routes)} routes.")
     except Olex2RtzError as e:
         current_app.logger.warning(f"A known error occurred during upload of {file.filename}: {e}")
@@ -96,37 +84,8 @@ def upload():
             display_route["waypoints"] = _sample_waypoints(route["waypoints"])
             display_routes.append(display_route)
 
-    # Categorize imported items
-    routes_count = 0
-    traces_count = 0
-    waypoints_count = 0
-
-    for route in routes:
-        route_name = route.get("route_name", "").lower()
-        waypoint_count = len(route.get("waypoints", []))
-
-        if waypoint_count == 1:
-            waypoints_count += 1
-        elif "trace" in route_name:
-            traces_count += 1
-        else:
-            routes_count += 1
-
-    # Build detailed message
-    message_parts = []
-    if routes_count > 0:
-        message_parts.append(f"{routes_count} route{'s' if routes_count != 1 else ''}")
-    if traces_count > 0:
-        message_parts.append(f"{traces_count} trace{'s' if traces_count != 1 else ''}")
-    if waypoints_count > 0:
-        message_parts.append(f"{waypoints_count} waypoint{'s' if waypoints_count != 1 else ''}")
-
-    if message_parts:
-        detailed_message = ", ".join(message_parts) + " successfully imported."
-    else:
-        detailed_message = f"{len(routes)} item{'s' if len(routes) != 1 else ''} successfully imported."
-
-    flash(detailed_message, "success")
+    # Simple success message
+    flash(f"{len(routes)} route{'s' if len(routes) != 1 else ''} successfully imported.", "success")
 
     routes_js = {
         r["route_name"]: [
@@ -136,14 +95,11 @@ def upload():
 
     source_format = "gz" if file.filename.endswith(".gz") else "rtz"
 
-    has_single_waypoint_routes = any(len(r.get('waypoints', [])) == 1 for r in routes)
-
     return render_template(
         "routes.html",
         routes=display_routes,
         routes_js=routes_js,
-        source_format=source_format,
-        has_single_waypoint_routes=has_single_waypoint_routes
+        source_format=source_format
     )
 
 

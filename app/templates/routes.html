@@ -75,20 +75,9 @@
 </div>
 {% endfor %}
 
-{% if has_single_waypoint_routes %}
-<div class="filter-switch" style="margin: 20px 0; display: flex; align-items: center; justify-content: center;">
-    <label for="toggle_single_waypoint" style="margin-right: 10px;">Show routes with only one waypoint</label>
-    <label class="switch">
-        <input type="checkbox" id="toggle_single_waypoint">
-        <span class="slider"></span>
-    </label>
-</div>
-{% endif %}
-
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    const allRoutes = {{ routes | tojson | safe }};
     const routes = {{ routes_js | tojson }};
     let map;
     let currentRoute = null;
@@ -114,12 +103,8 @@
 
         const latlngs = waypoints.map(wp => [wp.lat, wp.lon]);
 
-        // Determine route color based on type
-        const isTrace = routeName.toLowerCase().includes('trace');
-        const routeColor = isTrace ? '#FF6B35' : '#004080'; // Orange for traces, blue for routes
-
         // Always show the full route line for accuracy
-        currentRoute = L.polyline(latlngs, { color: routeColor, weight: 3 }).addTo(map);
+        currentRoute = L.polyline(latlngs, { color: '#004080', weight: 3 }).addTo(map);
 
         // Add markers for all waypoints
         latlngs.forEach((coords, i) => {
@@ -187,52 +172,6 @@
                         arrow.setAttribute('aria-expanded', 'false');
                     }
                 });
-            }
-    
-            // Route filtering logic
-            const toggleSwitch = document.getElementById('toggle_single_waypoint');
-            const routeContainers = document.querySelectorAll('.route-container');
-    
-            function filterRoutes() {
-                const showSingle = toggleSwitch.checked;
-                const routeSelect = document.getElementById('route');
-                const currentSelectedValue = routeSelect.value;
-                let newSelectedValue = null;
-
-                // Filtrer les conteneurs de routes
-                routeContainers.forEach(container => {
-                    const waypointCount = parseInt(container.dataset.waypoints, 10);
-                    const shouldBeVisible = waypointCount > 1 || showSingle;
-                    container.style.display = shouldBeVisible ? '' : 'none';
-                });
-
-                // Filtrer les options du select
-                Array.from(routeSelect.options).forEach(option => {
-                    const waypointCount = parseInt(option.dataset.waypoints, 10);
-                    const shouldBeVisible = waypointCount > 1 || showSingle;
-                    // Utiliser 'block' ou '' pour la visibilité peut être plus fiable que 'none'
-                    option.style.display = shouldBeVisible ? 'block' : 'none';
-                    if (shouldBeVisible && !newSelectedValue) {
-                        newSelectedValue = option.value;
-                    }
-                });
-
-                // Si l'option sélectionnée est maintenant cachée, sélectionnez la première visible
-                if (routeSelect.options[routeSelect.selectedIndex].style.display === 'none') {
-                    if (newSelectedValue) {
-                        routeSelect.value = newSelectedValue;
-                    }
-                }
-                
-                // Mettre à jour la carte si la sélection a changé
-                if (routeSelect.value !== currentSelectedValue) {
-                    updateMap(routeSelect.value);
-                }
-            }
-    
-            if (toggleSwitch) {
-                toggleSwitch.addEventListener('change', filterRoutes);
-                filterRoutes(); // Initial filter on page load
             }
         });
     </script>
