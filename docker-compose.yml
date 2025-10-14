@@ -10,6 +10,7 @@ services:
     volumes:
       - ./app:/app/app
       - ./static:/app/static
+      - ./cache:/app/cache
     env_file:
       - .env
     labels:
@@ -28,6 +29,8 @@ services:
       args:
         ENV_MODE: prod
     container_name: olex2rtz
+    volumes:
+      - ./cache:/app/cache
     env_file:
       - .env
     labels:

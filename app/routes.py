@@ -2,8 +2,11 @@ from flask import Blueprint, render_template, request, redirect, flash, url_for,
 import json
 import gzip
 import io
+import os
+import uuid
 import xml.etree.ElementTree as ET
 from . import converter_service
+from . import gpx_service
 from .exceptions import Olex2RtzError
 
 def _sample_waypoints(waypoints, max_count=100):
@@ -168,3 +171,211 @@ def convert():
 def convert_to_gpx():
     """Convertit la route sélectionnée en fichier GPX."""
     return _handle_conversion(converter_service.generate_gpx_file, "application/gpx+xml")
+
+
+# ========== GPX2XYZ Routes (hidden tool) ==========
+
+@main.route("/tools/gpx2xyz")
+def gpx2xyz_upload():
+    """Page d'upload GPX pour conversion bathymétrique (étape 1)."""
+    return render_template("gpx2xyz_upload.html")
+
+
+@main.route("/tools/gpx2xyz/upload", methods=["POST"])
+def gpx2xyz_process_upload():
+    """Traite l'upload d'un fichier GPX et analyse les segments."""
+    file = request.files.get("file")
+    if not file:
+        flash("Aucun fichier uploadé.", "error")
+        return redirect(url_for("main.gpx2xyz_upload"))
+    
+    if not file.filename.lower().endswith(".gpx"):
+        flash("Le fichier doit être au format GPX (.gpx).", "error")
+        return redirect(url_for("main.gpx2xyz_upload"))
+    
+    try:
+        current_app.logger.info(f"Processing GPX file: {file.filename}")
+        segments = gpx_service.parse_gpx_file(file)
+        current_app.logger.info(f"Successfully parsed {len(segments)} segment(s)")
+    except ValueError as e:
+        current_app.logger.warning(f"GPX parsing error: {e}")
+        flash(str(e), "error")
+        return redirect(url_for("main.gpx2xyz_upload"))
+    except Exception as e:
+        current_app.logger.error(f"Unexpected error parsing GPX: {e}", exc_info=True)
+        flash("Erreur lors du traitement du fichier GPX.", "error")
+        return redirect(url_for("main.gpx2xyz_upload"))
+    
+    # Stocker les segments en session (sans les points XML pour éviter les problèmes de sérialisation)
+    session_segments = []
+    for seg in segments:
+        session_segments.append({
+            'segment_id': seg['segment_id'],
+            'total': seg['total'],
+            'valid': seg['valid'],
+            'tmin': seg['tmin'].isoformat() if seg['tmin'] else None,
+            'tmax': seg['tmax'].isoformat() if seg['tmax'] else None,
+            'lat_median': seg['lat_median'],
+            'lon_median': seg['lon_median']
+        })
+    
+    session["gpx_segments"] = session_segments
+    
+    # Stocker le fichier GPX sur disque avec un UUID unique (évite les problèmes de taille en session)
+    gpx_upload_id = str(uuid.uuid4())
+    temp_dir = os.path.join(current_app.root_path, "..", "cache", "gpx_uploads")
+    os.makedirs(temp_dir, exist_ok=True)
+    
+    temp_file_path = os.path.join(temp_dir, f"{gpx_upload_id}.gpx")
+    file.seek(0)
+    with open(temp_file_path, "wb") as f:
+        f.write(file.read())
+    
+    session["gpx_upload_id"] = gpx_upload_id
+    current_app.logger.info(f"Stored GPX file as {gpx_upload_id}.gpx")
+    
+    flash(f"{len(segments)} segment(s) trouvé(s) dans le fichier GPX.", "success")
+    return redirect(url_for("main.gpx2xyz_segments"))
+
+
+@main.route("/tools/gpx2xyz/segments")
+def gpx2xyz_segments():
+    """Affiche les segments disponibles avec carte (étape 2)."""
+    segments_data = session.get("gpx_segments")
+    
+    if not segments_data:
+        flash("Aucun segment disponible. Veuillez d'abord uploader un fichier GPX.", "error")
+        return redirect(url_for("main.gpx2xyz_upload"))
+    
+    # Récupérer le fichier GPX depuis le disque
+    gpx_upload_id = session.get("gpx_upload_id")
+    if not gpx_upload_id:
+        flash("Données GPX perdues. Veuillez re-uploader le fichier.", "error")
+        return redirect(url_for("main.gpx2xyz_upload"))
+    
+    temp_dir = os.path.join(current_app.root_path, "..", "cache", "gpx_uploads")
+    temp_file_path = os.path.join(temp_dir, f"{gpx_upload_id}.gpx")
+    
+    if not os.path.exists(temp_file_path):
+        flash("Fichier GPX expiré. Veuillez re-uploader le fichier.", "error")
+        return redirect(url_for("main.gpx2xyz_upload"))
+    
+    try:
+        with open(temp_file_path, "rb") as f:
+            file_stream = io.BytesIO(f.read())
+        segments = gpx_service.parse_gpx_file(file_stream)
+    except Exception as e:
+        current_app.logger.error(f"Error reparsing GPX for map: {e}")
+        flash("Erreur lors de la lecture des données GPX.", "error")
+        return redirect(url_for("main.gpx2xyz_upload"))
+    
+    # Créer la structure JS pour la carte (tous les segments)
+    segments_js = {}
+    for seg in segments:
+        seg_name = f"Segment {seg['segment_id']}"
+        points = []
+        for pt in seg['points']:
+            lat = pt.get("lat")
+            lon = pt.get("lon")
+            if lat and lon:
+                try:
+                    points.append({"lat": float(lat), "lon": float(lon)})
+                except ValueError:
+                    continue
+        segments_js[seg_name] = points
+    
+    return render_template(
+        "gpx2xyz_segments.html",
+        segments=segments_data,
+        segments_js=segments_js
+    )
+
+
+@main.route("/tools/gpx2xyz/convert", methods=["POST"])
+def gpx2xyz_convert():
+    """Convertit le segment sélectionné en XYZ avec correction marée."""
+    segment_id = request.form.get("segment_id")
+    
+    if not segment_id:
+        flash("Aucun segment sélectionné.", "error")
+        return redirect(url_for("main.gpx2xyz_segments"))
+    
+    try:
+        segment_id = int(segment_id)
+    except ValueError:
+        flash("ID de segment invalide.", "error")
+        return redirect(url_for("main.gpx2xyz_segments"))
+    
+    # Récupérer le fichier GPX depuis le disque
+    gpx_upload_id = session.get("gpx_upload_id")
+    if not gpx_upload_id:
+        flash("Données GPX perdues. Veuillez re-uploader le fichier.", "error")
+        return redirect(url_for("main.gpx2xyz_upload"))
+    
+    temp_dir = os.path.join(current_app.root_path, "..", "cache", "gpx_uploads")
+    temp_file_path = os.path.join(temp_dir, f"{gpx_upload_id}.gpx")
+    
+    if not os.path.exists(temp_file_path):
+        flash("Fichier GPX expiré. Veuillez re-uploader le fichier.", "error")
+        return redirect(url_for("main.gpx2xyz_upload"))
+    
+    try:
+        # Reparser le GPX
+        with open(temp_file_path, "rb") as f:
+            file_stream = io.BytesIO(f.read())
+        segments = gpx_service.parse_gpx_file(file_stream)
+        
+        # Trouver le segment demandé
+        segment = next((s for s in segments if s['segment_id'] == segment_id), None)
+        if not segment:
+            flash(f"Segment {segment_id} introuvable.", "error")
+            return redirect(url_for("main.gpx2xyz_segments"))
+        
+        # Récupérer la clé API WorldTides
+        api_key = current_app.config.get("WORLDTIDES_API_KEY")
+        if not api_key:
+            flash("Clé API WorldTides non configurée (WORLDTIDES_API_KEY).", "error")
+            return redirect(url_for("main.gpx2xyz_segments"))
+        
+        # Récupérer le cache dir
+        cache_dir = os.path.join(current_app.root_path, "..", "cache", "worldtides")
+        
+        # Récupérer les données de marée via WorldTides
+        current_app.logger.info(f"Fetching tide data for segment {segment_id}")
+        tide_data = gpx_service.fetch_worldtides_heights(
+            lat=segment['lat_median'],
+            lon=segment['lon_median'],
+            start_dt=segment['tmin'],
+            end_dt=segment['tmax'],
+            api_key=api_key,
+            cache_dir=cache_dir
+        )
+        
+        # Générer le fichier XYZ
+        current_app.logger.info(f"Generating XYZ file for segment {segment_id}")
+        filename, file_data = gpx_service.generate_xyz_file(
+            segment=segment,
+            tide_data=tide_data
+        )
+        
+        current_app.logger.info(f"Successfully generated {filename}")
+        
+        return send_file(
+            file_data,
+            as_attachment=True,
+            download_name=filename,
+            mimetype="text/plain"
+        )
+        
+    except ValueError as e:
+        current_app.logger.warning(f"Validation error during conversion: {e}")
+        flash(str(e), "error")
+        return redirect(url_for("main.gpx2xyz_segments"))
+    except RuntimeError as e:
+        current_app.logger.error(f"Runtime error during conversion: {e}")
+        flash(str(e), "error")
+        return redirect(url_for("main.gpx2xyz_segments"))
+    except Exception as e:
+        current_app.logger.error(f"Unexpected error during conversion: {e}", exc_info=True)
+        flash("Erreur lors de la conversion. Veuillez réessayer.", "error")
+        return redirect(url_for("main.gpx2xyz_segments"))

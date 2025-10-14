@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}GPX Bathymétrie - Sélection Segment{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Segments GPX Détectés</h1>
+    <p class="subtitle">Sélectionnez le segment à convertir avec correction de marée WorldTides</p>
+
+    <form method="POST" action="{{ url_for('main.gpx2xyz_convert') }}" id="convert-form">
+        <div class="form-section">
+            <label for="segment_id">Segment à convertir :</label>
+            <select name="segment_id" id="segment_id" required>
+                {% for seg in segments %}
+                <option value="{{ seg.segment_id }}" 
+                        data-total="{{ seg.total }}" 
+                        data-valid="{{ seg.valid }}"
+                        data-tmin="{{ seg.tmin }}"
+                        data-tmax="{{ seg.tmax }}">
+                    Segment {{ seg.segment_id }} - {{ seg.valid }} pts valides
+                    {% if seg.tmin and seg.tmax %}
+                        ({{ seg.tmin[:19] }} → {{ seg.tmax[:19] }})
+                    {% endif %}
+                </option>
+                {% endfor %}
+            </select>
+
+            <div class="segment-details" id="segment-details">
+                <p><strong>Points totaux :</strong> <span id="detail-total">-</span></p>
+                <p><strong>Points valides :</strong> <span id="detail-valid">-</span></p>
+                <p><strong>Période :</strong> <span id="detail-period">-</span></p>
+            </div>
+        </div>
+
+        <button type="submit" name="format" value="xyz" class="btn btn-primary">
+            Exporter en XYZ
+        </button>
+    </form>
+
+    <div class="map-section">
+        <h3>Visualisation des segments</h3>
+        <div id="map"></div>
+    </div>
+
+    <div class="back-link">
+        <a href="{{ url_for('main.gpx2xyz_upload') }}">← Charger un autre fichier GPX</a>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+.container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+h1 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    color: #7f8c8d;
+    font-size: 1.1em;
+    margin-bottom: 30px;
+}
+
+.form-section {
+    background-color: #fff;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.form-section label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #34495e;
+    font-size: 1.1em;
+}
+
+.form-section select {
+    width: 100%;
+    padding: 12px;
+    font-size: 1em;
+    border: 2px solid #bdc3c7;
+    border-radius: 4px;
+    background-color: #fff;
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+
+.form-section select:hover,
+.form-section select:focus {
+    border-color: #3498db;
+    outline: none;
+}
+
+.segment-details {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border-left: 4px solid #3498db;
+}
+
+.segment-details p {
+    margin: 8px 0;
+    color: #34495e;
+}
+
+.segment-details strong {
+    color: #2c3e50;
+}
+
+.btn {
+    padding: 14px 30px;
+    font-size: 1.1em;
+    font-weight: bold;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin: 20px 0;
+}
+
+.btn-primary {
+    background-color: #3498db;
+    color: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.btn-primary:hover {
+    background-color: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.map-section {
+    background-color: #fff;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.map-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #2c3e50;
+}
+
+#map {
+    height: 500px;
+    border-radius: 4px;
+    background: #f0f0f0;
+}
+
+.back-link {
+    text-align: center;
+    margin-top: 30px;
+}
+
+.back-link a {
+    color: #3498db;
+    text-decoration: none;
+    font-size: 1.1em;
+    transition: color 0.3s;
+}
+
+.back-link a:hover {
+    color: #2980b9;
+    text-decoration: underline;
+}
+</style>
+
+<script>
+const segments = {{ segments_js | tojson }};
+let map;
+let segmentPolylines = {};  // Stocker les polylines par segment
+const segmentColors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c'];
+
+// Fonction pour afficher uniquement le segment sélectionné
+function showSelectedSegment() {
+    const select = document.getElementById('segment_id');
+    const selectedSegmentId = select.value;
+    const selectedSegmentName = `Segment ${selectedSegmentId}`;
+    
+    // Cacher tous les segments
+    for (const [segmentName, polyline] of Object.entries(segmentPolylines)) {
+        map.removeLayer(polyline);
+    }
+    
+    // Afficher uniquement le segment sélectionné
+    const selectedPolyline = segmentPolylines[selectedSegmentName];
+    if (selectedPolyline) {
+        selectedPolyline.addTo(map);
+        map.fitBounds(selectedPolyline.getBounds());
+    }
+}
+
+// Fonction pour mettre à jour les détails du segment
+function updateSegmentDetails() {
+    const select = document.getElementById('segment_id');
+    const option = select.options[select.selectedIndex];
+    
+    document.getElementById('detail-total').textContent = option.dataset.total || '-';
+    document.getElementById('detail-valid').textContent = option.dataset.valid || '-';
+    
+    if (option.dataset.tmin && option.dataset.tmax) {
+        const tmin = option.dataset.tmin.substring(0, 19).replace('T', ' ');
+        const tmax = option.dataset.tmax.substring(0, 19).replace('T', ' ');
+        document.getElementById('detail-period').textContent = `${tmin} → ${tmax}`;
+    } else {
+        document.getElementById('detail-period').textContent = '-';
+    }
+    
+    // Mettre à jour la carte
+    showSelectedSegment();
+}
+
+// Event listener pour le changement de segment
+document.getElementById('segment_id').addEventListener('change', updateSegmentDetails);
+
+// Initialisation de la carte
+window.addEventListener('load', () => {
+    // Mettre à jour les détails du premier segment
+    updateSegmentDetails();
+
+    // Initialiser la carte
+    setTimeout(() => {
+        console.log("Initializing map...");
+        map = L.map('map').setView([0, 0], 2);
+
+        try {
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://carto.com/attributions">CartoDB</a>',
+                maxZoom: 19
+            }).addTo(map);
+        } catch (error) {
+            console.error("CartoDB tiles failed. Falling back to OpenStreetMap.");
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                maxZoom: 19
+            }).addTo(map);
+        }
+
+        // Créer les polylines pour tous les segments (mais ne pas les ajouter à la carte)
+        let segmentIndex = 0;
+
+        for (const [segmentName, points] of Object.entries(segments)) {
+            if (points && points.length > 0) {
+                const latlngs = points.map(pt => [pt.lat, pt.lon]);
+                const color = segmentColors[segmentIndex % segmentColors.length];
+                
+                // Créer la polyline sans l'ajouter à la carte
+                const polyline = L.polyline(latlngs, {
+                    color: color,
+                    weight: 3,
+                    opacity: 0.7
+                });
+                
+                // Popup avec le nom du segment
+                polyline.bindPopup(`<strong>${segmentName}</strong><br>${points.length} points`);
+                
+                // Stocker la polyline
+                segmentPolylines[segmentName] = polyline;
+                
+                segmentIndex++;
+            }
+        }
+
+        // Afficher le segment sélectionné par défaut
+        showSelectedSegment();
+
+        map.invalidateSize();
+    }, 0);
+
+});
+</script>
+{% endblock %}

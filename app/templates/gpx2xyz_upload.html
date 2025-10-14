@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}GPX Bathymétrie - Conversion{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Conversion GPX Bathymétrique</h1>
+    <p class="subtitle">Convertissez vos fichiers GPX bathymétriques en fichiers XYZ avec correction de marée (WorldTides)</p>
+
+    <div class="info-box">
+        <h3>ℹ️ Informations</h3>
+        <ul>
+            <li>Le fichier GPX doit contenir des données bathymétriques (extension <code>depth</code>)</li>
+            <li>Les marées sont calculées automatiquement via WorldTides API</li>
+            <li>Le format de sortie est XYZ (lat lon sonde)</li>
+            <li>La sonde est calculée : sonde = profondeur - hauteur de marée</li>
+        </ul>
+    </div>
+
+    <form method="POST" action="{{ url_for('main.gpx2xyz_process_upload') }}" enctype="multipart/form-data" class="upload-form">
+        <div class="form-group">
+            <label for="file">Fichier GPX :</label>
+            <input type="file" id="file" name="file" accept=".gpx" required>
+            <small>Format accepté : .gpx uniquement</small>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+            <span>📁</span> Analyser le fichier GPX
+        </button>
+    </form>
+
+    <div class="help-section">
+        <h3>Comment ça marche ?</h3>
+        <ol>
+            <li><strong>Upload</strong> : Téléversez votre fichier GPX contenant des données bathymétriques</li>
+            <li><strong>Sélection</strong> : Choisissez le segment à convertir et visualisez-le sur une carte</li>
+            <li><strong>Conversion</strong> : Téléchargez le fichier XYZ avec correction de marée</li>
+        </ol>
+    </div>
+</div>
+
+<style>
+.container {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+h1 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    color: #7f8c8d;
+    font-size: 1.1em;
+    margin-bottom: 30px;
+}
+
+.info-box {
+    background-color: #e8f4f8;
+    border-left: 4px solid #3498db;
+    padding: 15px 20px;
+    margin-bottom: 30px;
+    border-radius: 4px;
+}
+
+.info-box h3 {
+    margin-top: 0;
+    color: #2980b9;
+}
+
+.info-box ul {
+    margin: 10px 0 0 20px;
+}
+
+.info-box code {
+    background-color: #fff;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+}
+
+.upload-form {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #34495e;
+}
+
+.form-group input[type="file"] {
+    width: 100%;
+    padding: 10px;
+    border: 2px dashed #bdc3c7;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+
+.form-group input[type="file"]:hover {
+    border-color: #3498db;
+}
+
+.form-group small {
+    display: block;
+    margin-top: 5px;
+    color: #7f8c8d;
+    font-size: 0.9em;
+}
+
+.btn {
+    padding: 12px 30px;
+    font-size: 1.1em;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: bold;
+}
+
+.btn-primary {
+    background-color: #3498db;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.btn span {
+    margin-right: 8px;
+}
+
+.help-section {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 30px;
+}
+
+.help-section h3 {
+    color: #2c3e50;
+    margin-top: 0;
+}
+
+.help-section ol {
+    margin: 15px 0 0 20px;
+    line-height: 1.8;
+}
+
+.help-section strong {
+    color: #34495e;
+}
+</style>
+{% endblock %}

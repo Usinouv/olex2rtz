@@ -17,6 +17,11 @@ def create_app():
         app.logger.warning("SECRET_KEY not set, using generated key. Set SECRET_KEY in environment for production.")
     app.secret_key = secret_key
     app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB
+    
+    # Configuration WorldTides API
+    app.config["WORLDTIDES_API_KEY"] = os.getenv("WORLDTIDES_API_KEY")
+    if not app.config["WORLDTIDES_API_KEY"]:
+        app.logger.warning("WORLDTIDES_API_KEY not set. GPX bathymetry conversion will not work.")
 
     # Configurer Flask-Session pour stockage sur disque
     app.config["SESSION_TYPE"] = "filesystem"
