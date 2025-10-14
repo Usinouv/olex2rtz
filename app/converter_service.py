@@ -26,10 +26,11 @@ def _sanitize_filename(name):
         name = name[:100]
     return name or "route"
 
-def _parse_routes_from_lines(lines):
+def _parse_routes_from_lines(lines, process_single_waypoints=False):
     """Parse les lignes d'un fichier Olex et retourne les routes."""
     routes = []
     unnamed_routes = 1
+    single_waypoint_count = 1
     i = 0
     while i < len(lines):
         line = lines[i].strip()
@@ -79,16 +80,26 @@ def _parse_routes_from_lines(lines):
                     waypoints[-1]["name"] = waypoint_name
                 j += 1
 
-            # Process all routes with multiple waypoints (skip single waypoints)
-            if len(waypoints) < 2:
-                current_app.logger.debug(f"Skipping route '{route_name}' - less than 2 waypoints")
+            # Process routes based on waypoint count
+            if len(waypoints) < 1:
+                current_app.logger.debug(f"Skipping route '{route_name}' - no waypoints")
                 i = j
                 continue
-
-            # Assign a default name if unnamed
-            if route_name == "uten navn":
-                route_name = f"Route {unnamed_routes}"
-                unnamed_routes += 1
+            
+            # Handle single waypoints
+            if len(waypoints) == 1:
+                if not process_single_waypoints:
+                    current_app.logger.debug(f"Skipping route '{route_name}' - single waypoint (not enabled)")
+                    i = j
+                    continue
+                # Mark as single waypoint for later identification
+                route_name = f"Waypoint {single_waypoint_count}"
+                single_waypoint_count += 1
+            else:
+                # Assign a default name if unnamed (multi-waypoint routes)
+                if route_name == "uten navn":
+                    route_name = f"Route {unnamed_routes}"
+                    unnamed_routes += 1
 
             if waypoints:
                 routes.append({"route_name": route_name, "waypoints": waypoints})
@@ -134,7 +145,7 @@ def _parse_rtz_file(file_stream):
         current_app.logger.error(f"RTZ file parsing failed for stream. Error: {e}", exc_info=True)
         raise InvalidFileError(f"Error parsing RTZ file: {e}")
 
-def process_uploaded_file(file_stream):
+def process_uploaded_file(file_stream, process_single_waypoints=False):
     """
     Traite un fichier olexplot.gz ou .rtz uploadé.
     """
@@ -143,7 +154,7 @@ def process_uploaded_file(file_stream):
         try:
             with gzip.open(file_stream, "rt", encoding="utf-8", errors="ignore") as f:
                 lines = f.readlines()
-            routes = _parse_routes_from_lines(lines)
+            routes = _parse_routes_from_lines(lines, process_single_waypoints=process_single_waypoints)
         except Exception as e:
             current_app.logger.error(f"GZ file processing failed for {filename}. Error: {e}", exc_info=True)
             raise InvalidFileError(f"Error during GZ file decompression: {e}")

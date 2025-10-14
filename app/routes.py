@@ -58,11 +58,12 @@ def upload():
     current_app.logger.info(f"MAX_CONTENT_LENGTH setting: {current_app.config.get('MAX_CONTENT_LENGTH', 'Not set')} bytes")
 
     # Get processing options from form
+    process_single_waypoints = request.form.get("process_single_waypoints") == "1"
     limit_waypoint_table = request.form.get("limit_waypoint_table") == "1"
 
     try:
         current_app.logger.info(f"Processing uploaded file: {file.filename}")
-        routes = converter_service.process_uploaded_file(file)
+        routes = converter_service.process_uploaded_file(file, process_single_waypoints=process_single_waypoints)
         current_app.logger.info(f"Successfully processed {file.filename}, found {len(routes)} routes.")
     except Olex2RtzError as e:
         current_app.logger.warning(f"A known error occurred during upload of {file.filename}: {e}")
@@ -94,12 +95,16 @@ def upload():
     }
 
     source_format = "gz" if file.filename.endswith(".gz") else "rtz"
+    
+    # Detect if there are single waypoint routes for styling purposes
+    has_single_waypoints = any(len(r.get('waypoints', [])) == 1 for r in routes)
 
     return render_template(
         "routes.html",
         routes=display_routes,
         routes_js=routes_js,
-        source_format=source_format
+        source_format=source_format,
+        has_single_waypoints=has_single_waypoints
     )
 
 

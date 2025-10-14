@@ -76,6 +76,14 @@
 {% endfor %}
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    .leaflet-marker-icon.single-waypoint {
+        background-color: #FF6B35;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+</style>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     const routes = {{ routes_js | tojson }};
@@ -102,21 +110,43 @@
         if (!waypoints || waypoints.length === 0) return;
 
         const latlngs = waypoints.map(wp => [wp.lat, wp.lon]);
+        
+        // Determine if this is a single waypoint
+        const isSingleWaypoint = waypoints.length === 1;
+        const routeColor = isSingleWaypoint ? '#FF6B35' : '#004080'; // Orange for single waypoints, blue for routes
 
-        // Always show the full route line for accuracy
-        currentRoute = L.polyline(latlngs, { color: '#004080', weight: 3 }).addTo(map);
+        // Show the route line (or just marker for single waypoints)
+        if (!isSingleWaypoint) {
+            currentRoute = L.polyline(latlngs, { color: routeColor, weight: 3 }).addTo(map);
+        }
 
         // Add markers for all waypoints
         latlngs.forEach((coords, i) => {
             const name = waypoints[i].name || "WP" + (i + 1);
-            const marker = L.marker(coords, { icon: circleIcon }).addTo(map)
+            
+            // Use different icon for single waypoints
+            const markerIcon = isSingleWaypoint ? L.divIcon({
+                className: 'leaflet-marker-icon single-waypoint',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8],
+                popupAnchor: [0, -10]
+            }) : circleIcon;
+            
+            const marker = L.marker(coords, { icon: markerIcon }).addTo(map)
                 .bindPopup(name)
                 .on('mouseover', function () { this.openPopup(); })
                 .on('mouseout', function () { this.closePopup(); });
             currentMarkers.push(marker);
         });
 
-        map.fitBounds(currentRoute.getBounds());
+        // Fit bounds appropriately
+        if (isSingleWaypoint) {
+            // For single waypoint, center on it with a reasonable zoom
+            map.setView(latlngs[0], 13);
+        } else {
+            // For routes, fit to the polyline bounds
+            map.fitBounds(currentRoute.getBounds());
+        }
         map.invalidateSize();
     }
 
