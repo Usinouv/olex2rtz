@@ -8,7 +8,7 @@ import json
 import hashlib
 import time
 import io
-import xml.etree.ElementTree as ET
+from defusedxml import ElementTree as DefusedET
 from datetime import datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from bisect import bisect_right
@@ -374,8 +374,8 @@ def parse_gpx_file(file_stream):
     }
     """
     try:
-        tree = ET.parse(file_stream)
-    except ET.ParseError as e:
+        tree = DefusedET.parse(file_stream)
+    except DefusedET.ParseError as e:
         raise ValueError(f"Erreur de parsing GPX: {e}")
     
     root = tree.getroot()

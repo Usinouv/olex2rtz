@@ -9,6 +9,7 @@ import gzip
 import io
 import re
 import xml.etree.ElementTree as ET
+from defusedxml import ElementTree as DefusedET
 from flask import current_app
 from .utils import minutes_to_degrees, is_float
 from .exceptions import InvalidFileError, NoRoutesFoundError
@@ -113,7 +114,7 @@ def _parse_routes_from_lines(lines, process_single_waypoints=False):
 def _parse_rtz_file(file_stream):
     """Parse un fichier RTZ et retourne les routes."""
     try:
-        tree = ET.parse(file_stream)
+        tree = DefusedET.parse(file_stream)
         root = tree.getroot()
         
         ns_map = {"rtz": "http://www.cirm.org/RTZ/1/0"}
@@ -141,7 +142,7 @@ def _parse_rtz_file(file_stream):
             
         return [{"route_name": route_name, "waypoints": waypoints}]
 
-    except ET.ParseError as e:
+    except DefusedET.ParseError as e:
         current_app.logger.error(f"RTZ file parsing failed for stream. Error: {e}", exc_info=True)
         raise InvalidFileError(f"Error parsing RTZ file: {e}")
 

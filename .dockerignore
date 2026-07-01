@@ -1,4 +1,5 @@
 venv/
+.venv/
 __pycache__/
 *.pyc
 *.pyo
@@ -6,3 +7,8 @@ __pycache__/
 *.log
 *.sqlite3
 .DS_Store
+.env
+.git/
+cache/
+.flask_session/
+app.log

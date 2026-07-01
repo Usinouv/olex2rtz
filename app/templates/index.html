@@ -7,6 +7,7 @@
 {% block content %}
         <p>Upload an <strong>olexplot.gz</strong> or <strong>.rtz</strong> file to analyze:</p>
         <form action="/upload" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="file" name="file" accept=".gz,.rtz" required>
 
             <label for="toggle_advanced" style="display: block; margin-top: 10px;">

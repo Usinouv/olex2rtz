@@ -4,7 +4,6 @@ import gzip
 import io
 import os
 import uuid
-import xml.etree.ElementTree as ET
 from . import converter_service
 from . import gpx_service
 from .exceptions import Olex2RtzError

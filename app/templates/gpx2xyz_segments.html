@@ -8,6 +8,7 @@
     <p class="subtitle">Sélectionnez le segment à convertir avec correction de marée WorldTides</p>
 
     <form method="POST" action="{{ url_for('main.gpx2xyz_convert') }}" id="convert-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-section">
             <label for="segment_id">Segment à convertir :</label>
             <select name="segment_id" id="segment_id" required>

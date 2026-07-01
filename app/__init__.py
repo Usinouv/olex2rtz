@@ -4,7 +4,10 @@ import logging
 from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv, find_dotenv
 from flask_session import Session  # <-- Ajouté
+from flask_wtf.csrf import CSRFProtect, CSRFError
 import getpass
+
+csrf = CSRFProtect()
 
 def create_app():
     load_dotenv(find_dotenv(), override=True)
@@ -27,7 +30,11 @@ def create_app():
     app.config["SESSION_TYPE"] = "filesystem"
     app.config["SESSION_FILE_DIR"] = os.path.join(os.getcwd(), ".flask_session")
     app.config["SESSION_PERMANENT"] = False
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "true").lower() in {"1", "true", "yes", "on"}
     Session(app)  # <-- Initialisation de Flask-Session
+    csrf.init_app(app)
 
     # Logging : fichier + stdout (docker logs / Dozzle)
     log_handler = RotatingFileHandler("app.log", maxBytes=5 * 1024 * 1024, backupCount=3)
@@ -64,6 +71,11 @@ def create_app():
     
     from .routes import main as main_blueprint
     app.register_blueprint(main_blueprint)
+
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(e):
+        app.logger.warning(f"CSRF validation failed: {e.description}")
+        return "Invalid or missing CSRF token.", 400
 
     # Nettoyage des fichiers de session anciens
     try:

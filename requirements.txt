@@ -3,3 +3,5 @@ python-dotenv>=0.21
 gunicorn>=21.0
 Flask-Session>=0.4
 requests>=2.31.0
+Flask-WTF>=1.2.0
+defusedxml>=0.7.1

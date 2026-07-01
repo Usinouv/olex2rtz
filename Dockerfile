@@ -32,8 +32,10 @@ WORKDIR /app
 COPY --from=builder /root/.local /home/appuser/.local
 ENV PATH=/home/appuser/.local/bin:$PATH
 
-# Copier le contenu du projet
-COPY . .
+# Copier uniquement le code nécessaire à l'exécution
+COPY app ./app
+COPY static ./static
+COPY run.py gunicorn.conf.py ./
 
 # Changer les permissions
 RUN chown -R appuser:appuser /app

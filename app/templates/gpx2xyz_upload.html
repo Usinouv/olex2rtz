@@ -18,6 +18,7 @@
     </div>
 
     <form method="POST" action="{{ url_for('main.gpx2xyz_process_upload') }}" enctype="multipart/form-data" class="upload-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-group">
             <label for="file">Fichier GPX :</label>
             <input type="file" id="file" name="file" accept=".gpx" required>
