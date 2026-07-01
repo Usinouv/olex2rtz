@@ -134,7 +134,6 @@ olex2rtz/
 │   ├── routes.py             # Routes et vues
 │   ├── converter_service.py  # Logique de conversion Olex→RTZ/GPX
 │   ├── gpx_service.py        # Logique GPX bathymétrique + WorldTides
-│   ├── email_utils.py        # Utilitaires email
 │   ├── exceptions.py         # Exceptions personnalisées
 │   ├── utils.py              # Utilitaires généraux
 │   ├── cleanup.py            # Nettoyage des sessions

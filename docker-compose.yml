@@ -17,11 +17,6 @@ services:
       APP_PORT: ${APP_PORT:-5000}
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
       WORLDTIDES_API_KEY: ${WORLDTIDES_API_KEY:-}
-      SENDER_EMAIL: ${SENDER_EMAIL:-}
-      RECEIVER_EMAIL: ${RECEIVER_EMAIL:-}
-      EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
-      SMTP_SERVER: ${SMTP_SERVER:-}
-      SMTP_PORT: ${SMTP_PORT:-}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.olex2rtz-dev.rule=Host(`${TRAEFIK_DEV_HOST:?TRAEFIK_DEV_HOST is required}`)"
@@ -47,11 +42,6 @@ services:
       APP_PORT: ${APP_PORT:-5000}
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
       WORLDTIDES_API_KEY: ${WORLDTIDES_API_KEY:-}
-      SENDER_EMAIL: ${SENDER_EMAIL:-}
-      RECEIVER_EMAIL: ${RECEIVER_EMAIL:-}
-      EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
-      SMTP_SERVER: ${SMTP_SERVER:-}
-      SMTP_PORT: ${SMTP_PORT:-}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.olex2rtz.rule=Host(`${TRAEFIK_PROD_HOST:?TRAEFIK_PROD_HOST is required}`)"

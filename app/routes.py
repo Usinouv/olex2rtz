@@ -111,27 +111,6 @@ def upload():
     )
 
 
-@main.route("/contact", methods=["GET", "POST"])
-def contact():
-    from .email_utils import send_contact_email
-
-    if request.method == "POST":
-        name = request.form.get("name")
-        email = request.form.get("email")
-        subject = request.form.get("subject")
-        message = request.form.get("message")
-
-        if not name or not email or not subject or not message:
-            flash("All fields are required.", "error")
-            return redirect(url_for("main.contact"))
-
-        success, feedback = send_contact_email(name, email, subject, message)
-        flash(feedback, "success" if success else "error")
-        return redirect(url_for("main.contact"))
-
-    return render_template("contact.html")
-
-
 def _handle_conversion(generator_func, mimetype):
     """Gère la logique de conversion de route commune."""
     route_name = request.form.get("route")
