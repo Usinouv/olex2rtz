@@ -31,6 +31,9 @@ def create_app():
             f"Invalid MAX_CONTENT_LENGTH_MB={max_content_length_mb_env!r}, falling back to 64 MB."
         )
     app.config["MAX_CONTENT_LENGTH"] = max_content_length_mb * 1024 * 1024
+    app.logger.info(
+        f"Upload max size configured to {max_content_length_mb} MB ({app.config['MAX_CONTENT_LENGTH']} bytes)."
+    )
     
     # Configuration WorldTides API
     app.config["WORLDTIDES_API_KEY"] = os.getenv("WORLDTIDES_API_KEY")
