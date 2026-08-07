@@ -3,6 +3,7 @@ import json
 import gzip
 import io
 import os
+import tempfile
 import uuid
 from . import converter_service
 from . import gpx_service
@@ -31,6 +32,31 @@ def _sample_waypoints(waypoints, max_count=100):
         sampled.append(waypoints[-1])
 
     return sampled
+
+
+def _get_writable_dir(primary_dir, fallback_dir):
+    """Return a writable directory, falling back to /tmp when needed."""
+    try:
+        os.makedirs(primary_dir, exist_ok=True)
+        return primary_dir
+    except OSError as e:
+        current_app.logger.warning(
+            f"Directory not writable: {primary_dir}. Fallback to {fallback_dir}. Error: {e}"
+        )
+        os.makedirs(fallback_dir, exist_ok=True)
+        return fallback_dir
+
+
+def _get_gpx_upload_dir():
+    primary = os.path.join(current_app.root_path, "..", "cache", "gpx_uploads")
+    fallback = os.path.join(tempfile.gettempdir(), "olex2rtz", "gpx_uploads")
+    return _get_writable_dir(primary, fallback)
+
+
+def _get_worldtides_cache_dir():
+    primary = os.path.join(current_app.root_path, "..", "cache", "worldtides")
+    fallback = os.path.join(tempfile.gettempdir(), "olex2rtz", "worldtides")
+    return _get_writable_dir(primary, fallback)
 
 main = Blueprint('main', __name__)
 
@@ -201,8 +227,7 @@ def gpx2xyz_process_upload():
     
     # Stocker le fichier GPX sur disque avec un UUID unique (évite les problèmes de taille en session)
     gpx_upload_id = str(uuid.uuid4())
-    temp_dir = os.path.join(current_app.root_path, "..", "cache", "gpx_uploads")
-    os.makedirs(temp_dir, exist_ok=True)
+    temp_dir = _get_gpx_upload_dir()
     
     temp_file_path = os.path.join(temp_dir, f"{gpx_upload_id}.gpx")
     file.seek(0)
@@ -231,7 +256,7 @@ def gpx2xyz_segments():
         flash("Données GPX perdues. Veuillez re-uploader le fichier.", "error")
         return redirect(url_for("main.gpx2xyz_upload"))
     
-    temp_dir = os.path.join(current_app.root_path, "..", "cache", "gpx_uploads")
+    temp_dir = _get_gpx_upload_dir()
     temp_file_path = os.path.join(temp_dir, f"{gpx_upload_id}.gpx")
     
     if not os.path.exists(temp_file_path):
@@ -290,7 +315,7 @@ def gpx2xyz_convert():
         flash("Données GPX perdues. Veuillez re-uploader le fichier.", "error")
         return redirect(url_for("main.gpx2xyz_upload"))
     
-    temp_dir = os.path.join(current_app.root_path, "..", "cache", "gpx_uploads")
+    temp_dir = _get_gpx_upload_dir()
     temp_file_path = os.path.join(temp_dir, f"{gpx_upload_id}.gpx")
     
     if not os.path.exists(temp_file_path):
@@ -316,7 +341,7 @@ def gpx2xyz_convert():
             return redirect(url_for("main.gpx2xyz_segments"))
         
         # Récupérer le cache dir
-        cache_dir = os.path.join(current_app.root_path, "..", "cache", "worldtides")
+        cache_dir = _get_worldtides_cache_dir()
         
         # Récupérer les données de marée via WorldTides
         current_app.logger.info(f"Fetching tide data for segment {segment_id}")

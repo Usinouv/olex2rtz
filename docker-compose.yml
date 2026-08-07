@@ -13,6 +13,7 @@ services:
       - ./cache:/app/cache
     environment:
       APP_PORT: ${APP_PORT:-5000}
+      MAX_CONTENT_LENGTH_MB: ${MAX_CONTENT_LENGTH_MB:-64}
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
       WORLDTIDES_API_KEY: ${WORLDTIDES_API_KEY:-}
     labels:
@@ -34,6 +35,7 @@ services:
       - ./cache:/app/cache
     environment:
       APP_PORT: ${APP_PORT:-5000}
+      MAX_CONTENT_LENGTH_MB: ${MAX_CONTENT_LENGTH_MB:-64}
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
       WORLDTIDES_API_KEY: ${WORLDTIDES_API_KEY:-}
     labels:

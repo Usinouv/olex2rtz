@@ -109,7 +109,12 @@ La fonctionnalité de conversion GPX bathymétrique est accessible via `/tools/g
    WORLDTIDES_API_KEY=votre_clé_api_worldtides
    ```
 
-2. Le cache WorldTides est automatiquement géré dans `./cache/worldtides/`
+2. Ajuster la taille maximale d'upload si nécessaire (par défaut: `64` Mo) :
+   ```bash
+   MAX_CONTENT_LENGTH_MB=64
+   ```
+
+3. Le cache WorldTides est automatiquement géré dans `./cache/worldtides/`
 
 ### Utilisation
 1. Accéder à `/tools/gpx2xyz`
